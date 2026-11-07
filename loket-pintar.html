@@ -1,0 +1,715 @@
+<title>Antay Summaba</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one app shell, four role screens behind tabs (pengunjung, petugas, papan, dasbor). Vernacular: ticket stubs, counter codes, time slots, departure-board numbers. */
+:root{
+  --bg:#F1F4F3; --surface:#FFFFFF; --ink:#13212B; --muted:#56666E; --line:#D3DCDB;
+  --accent:#0E6B57; --accent-ink:#FFFFFF; --accent-soft:#DCEFE8;
+  --signal:#B86E00; --signal-soft:#FBEED3;
+  --ok:#1F7A3D; --ok-soft:#E0F2E5; --crit:#B3261E; --crit-soft:#F9E0DE;
+  --board-bg:#13212B; --board-fg:#EEF3F1; --board-dim:#9FB2B4; --bar-booked:#A8D5C6;
+  --font-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1618; --surface:#162124; --ink:#E5EEEC; --muted:#93A5A7; --line:#29393C;
+  --accent:#43B898; --accent-ink:#05231B; --accent-soft:#15352D;
+  --signal:#F0B240; --signal-soft:#382A0F;
+  --ok:#5DC27F; --ok-soft:#153222; --crit:#F2786E; --crit-soft:#3A1B19;
+  --board-bg:#081012; --board-fg:#E5EEEC; --board-dim:#7F9496; --bar-booked:#2F6A5A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1618; --surface:#162124; --ink:#E5EEEC; --muted:#93A5A7; --line:#29393C;
+  --accent:#43B898; --accent-ink:#05231B; --accent-soft:#15352D;
+  --signal:#F0B240; --signal-soft:#382A0F;
+  --ok:#5DC27F; --ok-soft:#153222; --crit:#F2786E; --crit-soft:#3A1B19;
+  --board-bg:#081012; --board-fg:#E5EEEC; --board-dim:#7F9496; --bar-booked:#2F6A5A; color-scheme:dark}
+
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.5 var(--font-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+.wrap{max-width:1180px;margin-inline:auto}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0}
+h1{font-size:clamp(1.6rem,3.4vw,2.3rem);font-stretch:108%;font-weight:800;letter-spacing:-.015em;line-height:1.1}
+h2{font-size:1.02rem;font-weight:700;font-stretch:104%}
+p{margin:0}
+.muted{color:var(--muted)}
+.mono{font-family:var(--font-mono)}
+.eyebrow{font:600 .7rem/1.2 var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+a{color:var(--accent)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* top bar */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding-block:14px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand b{font-family:var(--font-display);font-stretch:122%;font-weight:850;font-size:1.3rem;letter-spacing:-.02em}
+.brand .eyebrow{color:var(--accent)}
+nav.tabs{display:flex;gap:4px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px}
+nav.tabs a{padding:7px 12px;border-radius:7px;color:var(--muted);text-decoration:none;font-weight:600;font-size:.9rem}
+nav.tabs a:hover{color:var(--ink)}
+nav.tabs a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.clock{margin-left:auto;display:flex;align-items:center;gap:6px}
+.clock output{font:600 1rem/1 var(--font-mono);min-width:3.6em;text-align:center;font-variant-numeric:tabular-nums}
+.disclaimer{font-size:.78rem;color:var(--muted);padding-block:8px 18px}
+
+/* controls */
+button,select,input{font:inherit;color:inherit}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:9px 16px;border-radius:9px;border:1px solid transparent;
+  background:var(--accent);color:var(--accent-ink);font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.small{min-height:32px;padding:4px 10px;font-size:.85rem}
+.icon-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font:600 1rem/1 var(--font-mono)}
+select,input[type=text],input[type=time],input[type=number],input[type=tel]{width:100%;min-height:42px;padding:8px 11px;border-radius:9px;border:1px solid var(--line);background:var(--surface)}
+label{display:grid;gap:5px;font-size:.86rem;font-weight:500}
+.check{display:flex;gap:9px;align-items:flex-start;font-weight:400}
+.check input{margin-top:3px;width:18px;height:18px;accent-color:var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:18px}
+.toolbar label{min-width:200px;flex:1 1 220px}
+.toolbar .stepper{flex:0 0 auto}
+
+/* layout */
+.intro{display:grid;gap:6px;margin-bottom:20px;max-width:62ch}
+.grid2{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:14px;min-width:0}
+.step{display:grid;gap:10px}
+
+/* pengunjung */
+.event-list{display:grid;gap:8px}
+.event-card{text-align:left;display:grid;gap:3px;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg);cursor:pointer}
+.event-card b{font-family:var(--font-display);font-stretch:104%;font-size:1rem}
+.event-card[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.slot{display:grid;gap:2px;padding:9px 8px;border-radius:9px;border:1px solid var(--line);background:var(--bg);cursor:pointer;text-align:left;position:relative}
+.slot .t{font:600 1rem/1.1 var(--font-mono);font-variant-numeric:tabular-nums}
+.slot .s{font-size:.74rem;color:var(--muted)}
+.slot[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.slot:disabled{opacity:.42;cursor:not-allowed;text-decoration:line-through}
+.slot .tag{position:absolute;top:-8px;right:6px;font:600 .62rem/1 var(--font-mono);text-transform:uppercase;letter-spacing:.06em;background:var(--signal);color:var(--surface);padding:3px 5px;border-radius:4px}
+.hint{font-size:.8rem;color:var(--muted)}
+
+.ticket{border-radius:14px;background:var(--surface);border:1px solid var(--line);overflow:hidden}
+.t-head{padding:14px 16px;background:var(--accent);color:var(--accent-ink);display:grid;gap:2px}
+.t-head .eyebrow{color:inherit;opacity:.8}
+.t-head b{font-family:var(--font-display);font-stretch:108%;font-size:1.08rem}
+.t-body{display:flex;gap:16px;padding:16px;flex-wrap:wrap}
+.qr{background:#FFFFFF;padding:8px;border-radius:8px;width:150px;height:150px;flex:0 0 auto;display:grid;place-items:center}
+.qr img,.qr canvas{display:block;max-width:100%}
+.t-info{display:grid;gap:8px;min-width:0;flex:1 1 180px}
+.code{font:600 1.6rem/1 var(--font-mono);letter-spacing:.08em}
+dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;margin:0;font-size:.88rem}
+dt{color:var(--muted)}
+dd{margin:0}
+.t-stub{position:relative;border-top:2px dashed var(--line);padding:12px 16px;font-size:.9rem}
+.t-stub::before,.t-stub::after{content:"";position:absolute;top:-11px;width:20px;height:20px;border-radius:50%;background:var(--bg);border:1px solid var(--line)}
+.t-stub::before{left:-11px}.t-stub::after{right:-11px}
+.mine-list{display:grid;gap:6px}
+.mine-list button{display:flex;justify-content:space-between;gap:10px;text-align:left;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);cursor:pointer}
+
+/* status */
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font-size:.78rem;font-weight:600}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--signal-soft);color:var(--signal)}
+.pill.crit{background:var(--crit-soft);color:var(--crit)}
+.callout{padding:12px 14px;border-radius:10px;border-left:4px solid var(--line);background:var(--bg);display:grid;gap:6px}
+.callout.ok{border-color:var(--ok);background:var(--ok-soft)}
+.callout.warn{border-color:var(--signal);background:var(--signal-soft)}
+.callout.crit{border-color:var(--crit);background:var(--crit-soft)}
+
+/* petugas */
+.lookup{display:flex;gap:8px}
+.lookup input{font:600 1.15rem/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase}
+.result{display:grid;gap:10px}
+.who{font-family:var(--font-display);font-size:1.3rem;font-weight:750;font-stretch:104%}
+.people{display:grid;gap:6px;max-height:300px;overflow:auto}
+.people button{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);cursor:pointer;text-align:left}
+.bignum{font:800 clamp(2.4rem,6vw,3.4rem)/1 var(--font-display);font-stretch:118%;font-variant-numeric:tabular-nums}
+.stat-row{display:flex;flex-wrap:wrap;gap:22px}
+.stat{display:grid;gap:4px}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper output{font:600 1.05rem/1 var(--font-mono);min-width:2.2em;text-align:center}
+.cam{position:relative;border-radius:10px;overflow:hidden;background:#000;aspect-ratio:4/3;max-width:100%}
+.cam video,.cam canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+
+/* papan */
+.board{background:var(--board-bg);color:var(--board-fg);border-radius:18px;padding:clamp(20px,4vw,44px);display:grid;gap:clamp(18px,3vw,30px)}
+.board .eyebrow{color:var(--board-dim)}
+.board h1{font-size:clamp(1.5rem,3.6vw,2.6rem);font-stretch:112%}
+.board-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,2vw,24px)}
+@media (max-width:700px){.board-tiles{grid-template-columns:minmax(0,1fr)}}
+.tile{border-top:2px solid var(--board-dim);padding-top:12px;display:grid;gap:6px}
+.tile .n{font:800 clamp(3rem,9vw,6.4rem)/.95 var(--font-display);font-stretch:125%;font-variant-numeric:tabular-nums}
+.tile .u{color:var(--board-dim);font-size:.95rem}
+.board-line{display:flex;flex-wrap:wrap;gap:10px 28px;font-size:clamp(1rem,1.8vw,1.25rem)}
+.board-line b{font-family:var(--font-mono)}
+.board-alert{padding:14px 18px;border-radius:12px;background:var(--signal);color:var(--board-bg);font-weight:700;font-size:clamp(1rem,2vw,1.3rem)}
+@media (prefers-reduced-motion:no-preference){.board-alert{animation:pulse 2.4s ease-in-out infinite}}
+@keyframes pulse{50%{opacity:.78}}
+
+/* dasbor */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:4px}
+.kpi .v{font:800 1.9rem/1 var(--font-display);font-stretch:112%;font-variant-numeric:tabular-nums}
+.chart{display:grid;gap:5px}
+.bar-row{display:grid;grid-template-columns:3.4em minmax(0,1fr) 5.2em;gap:10px;align-items:center;font-size:.8rem}
+.bar-row .t{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.bar-row .c{font-family:var(--font-mono);color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.bar{position:relative;height:16px;border-radius:4px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;display:block}
+.bar .b{background:var(--bar-booked)}
+.bar .d{background:var(--accent)}
+.bar-row.now .t{color:var(--signal);font-weight:600}
+.legend{display:flex;gap:16px;font-size:.78rem;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legend .lb::before{background:var(--bar-booked)}
+.legend .ld::before{background:var(--accent)}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:620px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
+th{font:600 .7rem/1.2 var(--font-mono);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.form-grid .full{grid-column:1/-1}
+@media (max-width:560px){.form-grid{grid-template-columns:minmax(0,1fr)}}
+footer{margin-top:28px;font-size:.78rem;color:var(--muted);max-width:70ch}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><b>Antay</b><span class="eyebrow">Ngantay mah santai · Summarecon Mall Bandung · prototipe</span></div>
+    <nav class="tabs" aria-label="Peran">
+      <a href="#pengunjung" data-tab="pengunjung">Pengunjung</a>
+      <a href="#petugas" data-tab="petugas">Petugas loket</a>
+      <a href="#papan" data-tab="papan">Papan antrean</a>
+      <a href="#dasbor" data-tab="dasbor">Dasbor mal</a>
+    </nav>
+    <div class="clock" title="Jam simulasi untuk demo">
+      <span class="eyebrow">Jam demo</span>
+      <button class="icon-btn" id="clock-minus" aria-label="Mundur 15 menit">−</button>
+      <output id="clock-out">11:15</output>
+      <button class="icon-btn" id="clock-plus" aria-label="Maju 15 menit">+</button>
+    </div>
+  </header>
+  <p class="disclaimer">Prototipe untuk Bandung Build Challenge 2026. Semua event, nama, dan angka di sini adalah data contoh, bukan layanan resmi Summarecon.</p>
+
+  <main>
+    <!-- PENGUNJUNG -->
+    <section data-view="pengunjung" hidden>
+      <div class="intro">
+        <h1>Pilih jam datang, simpan QR, tukar tanpa antre panjang.</h1>
+        <p class="muted">Untuk event di Summaba yang mewajibkan penukaran di loket: race pack lari, gelang masuk, sesi meet &amp; greet.</p>
+      </div>
+      <div class="grid2">
+        <div class="panel">
+          <div class="step"><h2>1. Pilih event</h2><div class="event-list" id="p-events"></div></div>
+          <div class="step"><h2>2. Pilih jam datang</h2><div class="slots" id="p-slots"></div><p class="hint" id="p-slot-hint"></p></div>
+          <form class="step" id="p-form" autocomplete="off">
+            <h2>3. Data penukar</h2>
+            <label for="p-name">Nama sesuai KTP<input type="text" id="p-name" required maxlength="60" placeholder="contoh: Rizky Pratama"></label>
+            <label class="check" for="p-ktp"><input type="checkbox" id="p-ktp" required><span>Saya akan membawa KTP asli. Nomor KTP tidak diminta dan tidak disimpan; petugas hanya mencocokkan nama.</span></label>
+            <button class="btn" type="submit" id="p-submit">Pesan slot</button>
+            <p class="hint" id="p-msg" role="status"></p>
+          </form>
+        </div>
+        <div class="panel" id="p-right" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- PETUGAS -->
+    <section data-view="petugas" hidden>
+      <div class="toolbar">
+        <label for="s-event">Event<select id="s-event"></select></label>
+        <label for="s-counter" style="flex:0 1 140px;min-width:120px">Loket saya<select id="s-counter"></select></label>
+        <div class="stat"><span class="eyebrow">Loket buka</span>
+          <div class="stepper"><button class="icon-btn" id="s-ctr-minus" aria-label="Kurangi loket">−</button><output id="s-ctr">1</output><button class="icon-btn" id="s-ctr-plus" aria-label="Tambah loket">+</button></div></div>
+      </div>
+      <div class="grid2">
+        <div class="panel">
+          <h2>Cek tiket</h2>
+          <form class="lookup" id="s-form" autocomplete="off">
+            <input type="text" id="s-code" maxlength="8" placeholder="Kode di bawah QR, mis. RF-7K2Q" aria-label="Kode tiket">
+            <button class="btn" type="submit">Cek</button>
+          </form>
+          <div class="result" id="s-result" aria-live="polite"></div>
+          <div class="step">
+            <div class="row" style="justify-content:space-between"><h2>Jadwal slot sekarang</h2><span class="hint" id="s-slot-label"></span></div>
+            <input type="text" id="s-filter" placeholder="Cari nama" aria-label="Cari nama di slot sekarang">
+            <div class="people" id="s-people"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Antrean di loket</h2>
+          <div class="stat-row" id="s-stats"></div>
+          <div id="s-alert"></div>
+          <div class="step">
+            <div class="row" style="justify-content:space-between">
+              <span class="eyebrow">Hitung orang dengan kamera AI</span>
+              <div class="row"><button class="btn small" id="cam-start" type="button">Nyalakan kamera</button><button class="btn small ghost" id="cam-stop" type="button" hidden>Matikan</button></div>
+            </div>
+            <div class="cam" id="cam-box" hidden><video id="cam-video" playsinline muted></video><canvas id="cam-canvas"></canvas></div>
+            <p class="hint" id="cam-msg">Kamera menghitung orang di area antrean (COCO-SSD di browser, tanpa pengenalan wajah, video tidak disimpan).</p>
+            <div id="s-jev"></div>
+            <p class="hint" id="jev-out">Jev menilai kondisi antrean dari frame kamera tiap 3 detik saat halaman dibuka lewat server lokal Antay. Frame dikirim ke API Jev (TypeSafe) dan tidak disimpan oleh Antay.</p>
+          </div>
+          <div class="row"><span class="eyebrow">Atau hitung manual</span>
+            <div class="stepper"><button class="icon-btn" id="q-minus" aria-label="Kurangi antrean">−</button><output id="q-out">0</output><button class="icon-btn" id="q-plus" aria-label="Tambah antrean">+</button></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAPAN -->
+    <section data-view="papan" hidden>
+      <div class="toolbar"><label for="b-event">Tampilkan event<select id="b-event"></select></label>
+        <p class="hint" style="flex:1 1 260px">Buka halaman ini di jendela kedua untuk layar TV. Angka ikut berubah saat petugas melayani.</p></div>
+      <div class="board" id="b-board"></div>
+    </section>
+
+    <!-- DASBOR -->
+    <section data-view="dasbor" hidden>
+      <div class="toolbar"><label for="d-event">Event<select id="d-event"></select></label></div>
+      <div class="kpis" id="d-kpis"></div>
+      <div class="grid2" style="margin-top:20px">
+        <div class="panel">
+          <div class="row" style="justify-content:space-between"><h2>Pemakaian kuota per slot</h2><div class="legend"><span class="lb">Dipesan</span><span class="ld">Sudah ditukar</span></div></div>
+          <div class="chart" id="d-chart"></div>
+        </div>
+        <div class="panel">
+          <h2>Buat event baru</h2>
+          <p class="hint">Untuk penyelenggara yang menyewa tempat di Summaba. Setelah dibuat, slotnya langsung muncul di halaman pengunjung.</p>
+          <form class="form-grid" id="d-form" autocomplete="off">
+            <label class="full" for="f-name">Nama event<input type="text" id="f-name" required maxlength="70" placeholder="contoh: Penukaran Tiket Konser"></label>
+            <label class="full" for="f-place">Lokasi loket<input type="text" id="f-place" required maxlength="50" placeholder="contoh: Exhibition Hall"></label>
+            <label for="f-open">Buka<input type="time" id="f-open" value="10:00" required></label>
+            <label for="f-close">Tutup<input type="time" id="f-close" value="18:00" required></label>
+            <label for="f-slot">Durasi slot (menit)<input type="number" id="f-slot" value="30" min="10" max="120" step="5" required></label>
+            <label for="f-cap">Kuota per slot<input type="number" id="f-cap" value="40" min="1" max="500" required></label>
+            <label for="f-counters">Jumlah loket<input type="number" id="f-counters" value="2" min="1" max="20" required></label>
+            <label for="f-svc">Menit per orang<input type="number" id="f-svc" value="1.5" min="0.5" max="10" step="0.5" required></label>
+            <label class="full" for="f-req">Syarat penukaran<input type="text" id="f-req" required maxlength="80" value="E-ticket + KTP sesuai nama"></label>
+            <label class="full" for="f-item">Ditukar dengan<input type="text" id="f-item" required maxlength="50" value="Gelang masuk"></label>
+            <button class="btn full" type="submit">Buat event</button>
+            <p class="hint full" id="d-msg" role="status"></p>
+          </form>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:20px">
+        <div class="row" style="justify-content:space-between"><h2>Semua event hari ini</h2><button class="btn small ghost" id="d-reset" type="button">Kembalikan data contoh</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Event</th><th>Lokasi</th><th class="num">Terdaftar</th><th class="num">Ditukar</th><th class="num">Belum datang</th><th class="num">Antrean</th><th class="num">Tunggu</th></tr></thead><tbody id="d-table"></tbody></table></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>Antay menyatukan penukaran tiket semua event di mal: slot jam datang untuk pengunjung, cek cepat untuk petugas, papan antrean, dan data per event untuk manajemen. Kamera AI (hitung orang) dan Jev (penilaian kondisi antrean) berjalan saat halaman dibuka lewat server lokal Antay di Chrome laptop; di link prototipe kamera diblokir dan antrean dihitung manual.</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const STORE = 'loket-pintar-v1';
+const ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const TFJS = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js';
+const COCO = 'https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js';
+const VIEWS = ['pengunjung', 'petugas', 'papan', 'dasbor'];
+
+const pad = (n) => String(n).padStart(2, '0');
+const hm = (m) => pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+const toMin = (s) => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const slotsOf = (ev) => { const out = []; for (let t = toMin(ev.open); t + ev.slotMin <= toMin(ev.close); t += ev.slotMin) out.push(t); return out; };
+const waitMinutes = (queue, svc, counters) => counters > 0 ? Math.ceil(queue * svc / counters) : Infinity;
+const countersNeeded = (queue, svc, target = 15) => Math.max(1, Math.ceil(queue * svc / target));
+const WAIT_LIMIT = 15; // menit; di atas ini sistem menyarankan buka loket tambahan
+
+function rng(seed) { return () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function newCode(prefix, rand, taken) { let c; do { c = prefix + '-' + Array.from({ length: 4 }, () => ALPHA[Math.floor(rand() * ALPHA.length)]).join(''); } while (taken.has(c)); taken.add(c); return c; }
+
+const FIRST = ['Rizky', 'Siti', 'Dimas', 'Ayu', 'Fajar', 'Nadia', 'Gilang', 'Putri', 'Reza', 'Intan', 'Bayu', 'Salsa', 'Yoga', 'Dewi', 'Ilham', 'Rani', 'Asep', 'Neng', 'Ujang', 'Euis', 'Hendra', 'Lia'];
+const LAST = ['Pratama', 'Lestari', 'Nugraha', 'Rahmawati', 'Saputra', 'Permana', 'Hidayat', 'Kurniawan', 'Maulana', 'Sari', 'Setiawan', 'Wulandari', 'Gunawan', 'Ramdhani'];
+
+function seedState() {
+  const now = 11 * 60 + 15;
+  const events = [
+    { id: 'gelang', prefix: 'GL', name: 'Penukaran Gelang Laga Kandang (contoh)', place: 'Sawarga Courtyard', open: '10:00', close: '15:00', slotMin: 30, cap: 60, counters: 3, svc: 1.2, req: 'E-ticket + KTP asli, tidak bisa diwakilkan', item: 'Gelang masuk stadion' },
+    { id: 'runfest', prefix: 'RF', name: 'Pengambilan Race Pack Lari (contoh)', place: 'Atrium utama', open: '10:00', close: '20:00', slotMin: 30, cap: 40, counters: 3, svc: 1.5, req: 'Bukti registrasi + KTP sesuai nama peserta', item: 'Race pack (BIB + jersey)' },
+    { id: 'mng', prefix: 'MG', name: 'Meet & Greet Maskot Anak (contoh)', place: 'Atrium timur', open: '13:00', close: '17:00', slotMin: 20, cap: 25, counters: 1, svc: 2.5, req: 'Kode registrasi + orang tua pendamping', item: 'Gelang sesi foto' },
+  ];
+  const rand = rng(2026), taken = new Set(), bookings = [];
+  for (const ev of events) {
+    const slots = slotsOf(ev);
+    slots.forEach((t, i) => {
+      const peak = 1 - Math.abs((i + 0.5) / slots.length - 0.45) * 1.4;
+      const n = Math.round(ev.cap * Math.min(0.95, Math.max(0.15, peak)) * (0.7 + rand() * 0.3));
+      for (let k = 0; k < n; k++) {
+        const past = t + ev.slotMin <= now, cur = t <= now && now < t + ev.slotMin;
+        const done = past ? rand() < 0.86 : cur ? rand() < 0.45 : false;
+        bookings.push({ code: newCode(ev.prefix, rand, taken), ev: ev.id, name: FIRST[Math.floor(rand() * FIRST.length)] + ' ' + LAST[Math.floor(rand() * LAST.length)], slot: t, status: done ? 'done' : 'booked', doneAt: done ? Math.min(now, t + Math.floor(rand() * ev.slotMin)) : null, counter: done ? 1 + Math.floor(rand() * ev.counters) : null });
+      }
+    });
+  }
+  return { v: 1, now, events, bookings, queue: { gelang: 34, runfest: 16, mng: 0 }, sel: { pengunjung: 'runfest', petugas: 'gelang', papan: 'gelang', dasbor: 'gelang' }, counter: 1, mine: [], jev: {} };
+}
+
+let S = null;
+try { S = JSON.parse(localStorage.getItem(STORE)); } catch (e) { S = null; }
+if (!S || S.v !== 1) S = seedState();
+S.jev = S.jev || {};
+const JEV_LEVELS = ['Kosong', 'Sepi', 'Mengalir', 'Padat', 'Meluber'];
+let VIEW = 'pengunjung';
+const ui = { pickSlot: null, ticket: null, lookup: null, flash: null };
+
+function persist() { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { /* tanpa penyimpanan: data hanya di memori */ } }
+function save() { persist(); render(); }
+addEventListener('storage', (e) => { if (e.key === STORE && e.newValue) { try { S = JSON.parse(e.newValue); render(); } catch (err) { /* abaikan data rusak */ } } });
+
+const evById = (id) => S.events.find((e) => e.id === id) || S.events[0];
+const bookingsOf = (id) => S.bookings.filter((b) => b.ev === id);
+function slotState(ev, t) {
+  const booked = S.bookings.reduce((n, b) => n + (b.ev === ev.id && b.slot === t ? 1 : 0), 0);
+  return { booked, left: Math.max(0, ev.cap - booked), past: t + ev.slotMin <= S.now, current: t <= S.now && S.now < t + ev.slotMin };
+}
+function currentSlot(ev) { return slotsOf(ev).find((t) => t <= S.now && S.now < t + ev.slotMin) ?? null; }
+function queueInfo(ev) { const q = S.queue[ev.id] || 0; const w = waitMinutes(q, ev.svc, ev.counters); return { q, w, need: countersNeeded(q, ev.svc, WAIT_LIMIT), long: w > WAIT_LIMIT }; }
+
+function fillSelect(sel, value) {
+  sel.innerHTML = S.events.map((e) => `<option value="${esc(e.id)}"${e.id === value ? ' selected' : ''}>${esc(e.name)}</option>`).join('');
+}
+
+/* ---------- PENGUNJUNG ---------- */
+function renderVisitor() {
+  const ev = evById(S.sel.pengunjung);
+  $('#p-events').innerHTML = S.events.map((e) => `<button type="button" class="event-card" data-ev="${esc(e.id)}" aria-pressed="${e.id === ev.id}">
+      <b>${esc(e.name)}</b><span class="hint">${esc(e.place)} · ${e.open}–${e.close}</span><span class="hint">Bawa: ${esc(e.req)}</span></button>`).join('');
+  const slots = slotsOf(ev).map((t) => ({ t, ...slotState(ev, t) }));
+  const upcoming = slots.filter((s) => !s.past && s.left > 0).slice(0, 4);
+  const rec = upcoming.length ? upcoming.reduce((a, b) => (b.booked / ev.cap < a.booked / ev.cap ? b : a)).t : null;
+  if (ui.pickSlot !== null && !slots.some((s) => s.t === ui.pickSlot && !s.past && s.left > 0)) ui.pickSlot = null;
+  $('#p-slots').innerHTML = slots.map((s) => `<button type="button" class="slot" data-slot="${s.t}" aria-pressed="${s.t === ui.pickSlot}" ${s.past || !s.left ? 'disabled' : ''}>
+      ${s.t === rec ? '<span class="tag">Paling sepi</span>' : ''}<span class="t">${hm(s.t)}</span><span class="s">${s.past ? 'lewat' : s.left ? 'sisa ' + s.left : 'penuh'}</span></button>`).join('');
+  $('#p-slot-hint').textContent = `Slot ${ev.slotMin} menit, kuota ${ev.cap} orang per slot. Datang di jam slot agar loket tidak menumpuk.`;
+  $('#p-submit').disabled = ui.pickSlot === null;
+  $('#p-submit').textContent = ui.pickSlot === null ? 'Pilih jam dulu' : `Pesan slot ${hm(ui.pickSlot)}`;
+  renderTicket();
+}
+
+function renderTicket() {
+  const box = $('#p-right');
+  const mine = S.mine.map((c) => S.bookings.find((b) => b.code === c)).filter(Boolean);
+  const t = mine.find((b) => b.code === ui.ticket) || mine[mine.length - 1];
+  if (!t) {
+    box.innerHTML = `<h2>Tiket kamu muncul di sini</h2><p class="muted">Setelah memesan, kamu mendapat kode dan QR. Tunjukkan di loket bersama KTP. Status antrean di loket ikut tampil di tiket.</p>
+      <div class="callout"><span class="eyebrow">Kenapa pakai slot?</span><span>Pengunjung tidak perlu datang pagi buta. Mal bisa membagi kedatangan per jam, jadi antrean di atrium tidak meluber.</span></div>`;
+    return;
+  }
+  const ev = evById(t.ev), qi = queueInfo(ev);
+  let stub;
+  if (t.status === 'done') stub = `<span class="pill ok">Sudah ditukar ${hm(t.doneAt)} · loket ${t.counter}</span>`;
+  else if (t.slot + ev.slotMin <= S.now) stub = `<span class="pill crit">Slot ${hm(t.slot)} sudah lewat</span> <span class="hint">Tetap bisa ditukar, mungkin menunggu lebih lama.</span>`;
+  else if (t.slot > S.now) stub = `<span class="pill warn">Datang ${hm(t.slot)}</span> <span class="hint">Antrean di loket sekarang ±${qi.q} orang, tunggu ±${qi.w} menit.</span>`;
+  else stub = `<span class="pill ok">Slot kamu sedang berjalan</span> <span class="hint">Antrean ±${qi.q} orang, tunggu ±${qi.w} menit.</span>`;
+  box.innerHTML = `<div class="ticket">
+      <div class="t-head"><span class="eyebrow">Tiket penukaran</span><b>${esc(ev.name)}</b></div>
+      <div class="t-body"><div class="qr" id="p-qr" aria-label="QR kode tiket"></div>
+        <div class="t-info"><div class="code">${esc(t.code)}</div>
+          <dl><dt>Nama</dt><dd>${esc(t.name)}</dd><dt>Jam datang</dt><dd class="mono">${hm(t.slot)}–${hm(t.slot + ev.slotMin)}</dd>
+          <dt>Loket</dt><dd>${esc(ev.place)}</dd><dt>Bawa</dt><dd>${esc(ev.req)}</dd><dt>Ditukar</dt><dd>${esc(ev.item)}</dd></dl></div></div>
+      <div class="t-stub">${stub}</div></div>
+    ${mine.length > 1 ? `<div class="step"><span class="eyebrow">Tiket saya</span><div class="mine-list">${mine.slice().reverse().map((b) => `<button type="button" data-code="${esc(b.code)}"><span class="mono">${esc(b.code)}</span><span class="hint">${esc(evById(b.ev).name)} · ${hm(b.slot)}</span></button>`).join('')}</div></div>` : ''}`;
+  const qrBox = $('#p-qr');
+  if (window.QRCode) new QRCode(qrBox, { text: t.code, width: 134, height: 134, colorDark: '#13212B', colorLight: '#FFFFFF', correctLevel: QRCode.CorrectLevel.M });
+  else qrBox.innerHTML = `<span class="mono">${esc(t.code)}</span>`;
+}
+
+$('#p-events').addEventListener('click', (e) => { const b = e.target.closest('[data-ev]'); if (!b) return; S.sel.pengunjung = b.dataset.ev; ui.pickSlot = null; save(); });
+$('#p-slots').addEventListener('click', (e) => { const b = e.target.closest('[data-slot]'); if (!b || b.disabled) return; ui.pickSlot = Number(b.dataset.slot); renderVisitor(); });
+$('#p-right').addEventListener('click', (e) => { const b = e.target.closest('[data-code]'); if (!b) return; ui.ticket = b.dataset.code; renderTicket(); });
+$('#p-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const ev = evById(S.sel.pengunjung), name = $('#p-name').value.trim().replace(/\s+/g, ' ');
+  if (ui.pickSlot === null) { $('#p-msg').textContent = 'Pilih jam datang dulu.'; return; }
+  if (name.length < 3) { $('#p-msg').textContent = 'Tulis nama lengkap sesuai KTP.'; return; }
+  const st = slotState(ev, ui.pickSlot);
+  if (st.past || !st.left) { $('#p-msg').textContent = 'Slot itu sudah penuh atau lewat. Pilih jam lain.'; ui.pickSlot = null; renderVisitor(); return; }
+  const code = newCode(ev.prefix, Math.random, new Set(S.bookings.map((b) => b.code)));
+  S.bookings.push({ code, ev: ev.id, name, slot: ui.pickSlot, status: 'booked', doneAt: null, counter: null });
+  S.mine.push(code); ui.ticket = code; ui.pickSlot = null;
+  $('#p-name').value = ''; $('#p-ktp').checked = false;
+  $('#p-msg').textContent = `Slot dipesan. Kode tiket ${code}.`;
+  save();
+});
+
+/* ---------- PETUGAS ---------- */
+function renderStaff() {
+  const ev = evById(S.sel.petugas);
+  fillSelect($('#s-event'), ev.id);
+  if (S.counter > ev.counters) S.counter = ev.counters;
+  $('#s-counter').innerHTML = Array.from({ length: ev.counters }, (_, i) => `<option value="${i + 1}"${i + 1 === S.counter ? ' selected' : ''}>Loket ${i + 1}</option>`).join('');
+  $('#s-ctr').textContent = ev.counters;
+  const qi = queueInfo(ev);
+  $('#q-out').textContent = qi.q;
+  $('#s-stats').innerHTML = `<div class="stat"><span class="eyebrow">Orang antre</span><span class="bignum">${qi.q}</span></div>
+    <div class="stat"><span class="eyebrow">Perkiraan tunggu</span><span class="bignum">${qi.w}<small style="font-size:.4em"> mnt</small></span></div>
+    <div class="stat"><span class="eyebrow">Loket buka</span><span class="bignum">${ev.counters}</span></div>`;
+  $('#s-jev').innerHTML = jevPanel(ev, qi);
+  $('#s-alert').innerHTML = qi.long ?`<div class="callout warn"><b>Antrean lebih dari ${WAIT_LIMIT} menit.</b><span>Buka ${qi.need - ev.counters} loket lagi supaya tunggu turun ke bawah ${WAIT_LIMIT} menit (butuh ${qi.need} loket).</span></div>` : `<div class="callout ok"><span>Antrean terkendali. Perkiraan tunggu di bawah ${WAIT_LIMIT} menit.</span></div>`;
+  const cur = currentSlot(ev);
+  const nextT = cur === null ? slotsOf(ev).find((t) => t > S.now) : cur + ev.slotMin;
+  const shown = [cur, nextT].filter((t) => t !== null && t !== undefined);
+  $('#s-slot-label').textContent = shown.length ? shown.map(hm).join(' & ') : 'loket tutup';
+  const f = $('#s-filter').value.trim().toLowerCase();
+  const list = bookingsOf(ev.id).filter((b) => shown.includes(b.slot) && b.status !== 'done' && (!f || b.name.toLowerCase().includes(f) || b.code.toLowerCase().includes(f)));
+  $('#s-people').innerHTML = list.length ? list.slice(0, 60).map((b) => `<button type="button" data-code="${esc(b.code)}"><span>${esc(b.name)}</span><span class="mono hint">${esc(b.code)} · ${hm(b.slot)}</span></button>`).join('') : '<p class="hint">Tidak ada yang menunggu di slot ini.</p>';
+  renderLookup();
+}
+
+function renderLookup() {
+  const box = $('#s-result'), code = ui.lookup;
+  if (!code) { box.innerHTML = ui.flash ? `<div class="callout ok">${ui.flash}</div>` : '<p class="hint">Ketik kode tiket atau pilih nama dari jadwal slot di bawah.</p>'; return; }
+  const ev = evById(S.sel.petugas), b = S.bookings.find((x) => x.code === code);
+  if (!b) { box.innerHTML = `<div class="callout crit"><b>Kode ${esc(code)} tidak ditemukan.</b><span>Periksa huruf dan angka, atau cari nama pengunjung di jadwal slot.</span></div>`; return; }
+  const bev = evById(b.ev);
+  if (b.ev !== ev.id) { box.innerHTML = `<div class="callout warn"><b>Tiket ini untuk event lain.</b><span>${esc(bev.name)} di ${esc(bev.place)}. Arahkan pengunjung ke loket itu.</span></div>`; return; }
+  if (b.status === 'done') { box.innerHTML = `<div class="callout crit"><b>Sudah ditukar pukul ${hm(b.doneAt)} di loket ${b.counter}.</b><span>${esc(b.name)} · ${esc(b.code)}. Jangan serahkan ${esc(ev.item)} kedua kalinya.</span></div>`; return; }
+  let timing;
+  if (S.now < b.slot - 15) timing = `<span class="pill warn">Datang lebih awal · slot ${hm(b.slot)}</span>`;
+  else if (S.now >= b.slot + ev.slotMin) timing = `<span class="pill warn">Terlambat · slot ${hm(b.slot)}</span>`;
+  else timing = `<span class="pill ok">Sesuai slot ${hm(b.slot)}</span>`;
+  box.innerHTML = `<div class="callout"><div class="row" style="justify-content:space-between"><span class="who">${esc(b.name)}</span>${timing}</div>
+      <span class="mono">${esc(b.code)}</span>
+      <label class="check" for="s-ktp"><input type="checkbox" id="s-ktp"><span>Nama di KTP cocok dengan nama di tiket</span></label>
+      <div class="row"><button class="btn" type="button" id="s-give" disabled>Serahkan ${esc(ev.item)}</button><button class="btn ghost" type="button" id="s-cancel">Batal</button></div></div>`;
+  $('#s-ktp').addEventListener('change', (e) => { $('#s-give').disabled = !e.target.checked; });
+  $('#s-cancel').addEventListener('click', () => { ui.lookup = null; ui.flash = null; renderLookup(); });
+  $('#s-give').addEventListener('click', () => {
+    b.status = 'done'; b.doneAt = S.now; b.counter = S.counter;
+    if (S.queue[ev.id] > 0 && !cam.model) S.queue[ev.id] -= 1; // kamera mati: satu orang selesai dilayani keluar dari antrean
+    ui.flash = `<b>${esc(b.name)}</b> menerima ${esc(ev.item)} di loket ${S.counter}.`; ui.lookup = null;
+    $('#s-code').value = ''; save(); $('#s-code').focus();
+  });
+}
+
+$('#s-event').addEventListener('change', (e) => { S.sel.petugas = e.target.value; ui.lookup = null; ui.flash = null; save(); });
+$('#s-counter').addEventListener('change', (e) => { S.counter = Number(e.target.value); save(); });
+$('#s-ctr-minus').addEventListener('click', () => { const ev = evById(S.sel.petugas); if (ev.counters > 1) { ev.counters -= 1; save(); } });
+$('#s-ctr-plus').addEventListener('click', () => { const ev = evById(S.sel.petugas); if (ev.counters < 20) { ev.counters += 1; save(); } });
+$('#s-form').addEventListener('submit', (e) => { e.preventDefault(); const v = $('#s-code').value.trim().toUpperCase(); if (!v) return; ui.lookup = v.includes('-') ? v : v.slice(0, 2) + '-' + v.slice(2); ui.flash = null; renderLookup(); });
+$('#s-people').addEventListener('click', (e) => { const b = e.target.closest('[data-code]'); if (!b) return; ui.lookup = b.dataset.code; ui.flash = null; $('#s-code').value = b.dataset.code; renderLookup(); });
+$('#s-filter').addEventListener('input', renderStaff);
+$('#q-minus').addEventListener('click', () => { const id = S.sel.petugas; S.queue[id] = Math.max(0, (S.queue[id] || 0) - 1); save(); });
+$('#q-plus').addEventListener('click', () => { const id = S.sel.petugas; S.queue[id] = (S.queue[id] || 0) + 1; save(); });
+
+/* kamera AI: hitung orang dengan COCO-SSD di browser */
+const cam = { stream: null, model: null, timer: null, hist: [] };
+const off = document.createElement('canvas');
+function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+async function camStart() {
+  const msg = $('#cam-msg');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { msg.textContent = 'Browser ini tidak memberi akses kamera. Pakai hitung manual.'; return; }
+  try { cam.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }); }
+  catch (e) { msg.textContent = 'Kamera tidak bisa dibuka di halaman ini. Di link prototipe kamera memang diblokir; jalankan server lokal Antay (node server.mjs) dan buka di Chrome laptop, atau pakai hitung manual.'; return; }
+  const v = $('#cam-video'); v.srcObject = cam.stream; await v.play();
+  $('#cam-box').hidden = false; $('#cam-start').hidden = true; $('#cam-stop').hidden = false;
+  jevStart();
+  msg.textContent = 'Memuat model AI pendeteksi orang…';
+  try {
+    if (!window.cocoSsd) { await loadScript(TFJS); await loadScript(COCO); }
+    // mobilenet_v2: lebih akurat dari versi lite, sedikit lebih lambat
+    cam.model = cam.model || await window.cocoSsd.load({ base: 'mobilenet_v2' });
+  } catch (e) { msg.textContent = 'Model AI gagal dimuat karena jaringan diblokir. Kamera tetap tampil; pakai hitung manual.'; return; }
+  msg.textContent = 'AI menghitung orang di seluruh frame dan 4 potongan frame (supaya orang yang jauh ikut terdeteksi). Angka antrean = median 5 hitungan terakhir.';
+  tick();
+}
+// Deteksi di frame penuh + 4 potongan yang saling tumpang tindih, lalu gabungkan kotak ganda.
+// COCO-SSD mengecilkan input ke ~300px, jadi orang kecil/jauh baru terlihat saat frame dipotong.
+async function detectPeople(src) {
+  const W = src.videoWidth || src.width, H = src.videoHeight || src.height;
+  const tw = Math.round(W * 0.6), th = Math.round(H * 0.6);
+  const regions = [[0, 0, W, H], [0, 0, tw, th], [W - tw, 0, tw, th], [0, H - th, tw, th], [W - tw, H - th, tw, th]];
+  const all = [];
+  for (const [x, y, w, h] of regions) {
+    off.width = w; off.height = h; off.getContext('2d').drawImage(src, x, y, w, h, 0, 0, w, h);
+    for (const p of await cam.model.detect(off, 100, 0.35)) if (p.class === 'person') all.push({ bbox: [p.bbox[0] + x, p.bbox[1] + y, p.bbox[2], p.bbox[3]], score: p.score });
+  }
+  return mergeBoxes(all);
+}
+function overlap(a, b) {
+  const ix = Math.max(0, Math.min(a[0] + a[2], b[0] + b[2]) - Math.max(a[0], b[0]));
+  const iy = Math.max(0, Math.min(a[1] + a[3], b[1] + b[3]) - Math.max(a[1], b[1]));
+  const i = ix * iy, aa = a[2] * a[3], ba = b[2] * b[3];
+  return { iou: i / (aa + ba - i || 1), small: i / (Math.min(aa, ba) || 1) };
+}
+// Kotak dianggap orang yang sama kalau IoU > 0.45 atau kotak kecil > 80% berada di dalam kotak besar (potongan di tepi tile).
+function mergeBoxes(list) {
+  const keep = [];
+  for (const p of list.slice().sort((a, b) => b.score - a.score)) {
+    if (keep.every((k) => { const o = overlap(k.bbox, p.bbox); return o.iou <= 0.45 && o.small <= 0.8; })) keep.push(p);
+  }
+  return keep;
+}
+async function tick() {
+  if (!cam.stream || !cam.model) return;
+  const v = $('#cam-video');
+  if (v.readyState >= 2) {
+    const people = await detectPeople(v);
+    drawBoxes(v, people);
+    cam.hist.push(people.length); if (cam.hist.length > 5) cam.hist.shift();
+    const med = cam.hist.slice().sort((a, b) => a - b)[Math.floor(cam.hist.length / 2)];
+    const id = S.sel.petugas;
+    if (S.queue[id] !== med) { S.queue[id] = med; save(); }
+  }
+  cam.timer = setTimeout(tick, 900);
+}
+function drawBoxes(v, people) {
+  const c = $('#cam-canvas'), r = c.getBoundingClientRect();
+  c.width = r.width; c.height = r.height;
+  const sx = r.width / v.videoWidth, sy = r.height / v.videoHeight, s = Math.max(sx, sy);
+  const ox = (r.width - v.videoWidth * s) / 2, oy = (r.height - v.videoHeight * s) / 2;
+  const g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height);
+  g.lineWidth = 2; g.strokeStyle = '#F0B240'; g.fillStyle = '#F0B240'; g.font = '600 12px "IBM Plex Mono", monospace';
+  people.forEach((p, i) => { const [x, y, w, h] = p.bbox; g.strokeRect(ox + x * s, oy + y * s, w * s, h * s); g.fillText('orang ' + (i + 1), ox + x * s + 4, oy + y * s + 14); });
+}
+/* Jev: menilai kondisi antrean dari frame kamera lewat server lokal (API key tetap di server) */
+const jev = { on: false, timer: null, busy: false };
+async function jevStart() {
+  try { const r = await fetch('/api/jev-status'); jev.on = r.ok && (await r.json()).enabled; } catch (e) { jev.on = false; }
+  $('#jev-out').textContent = jev.on ? 'Jev aktif: menilai kepadatan, antrean meluber, dan orang terjatuh tiap 3 detik.' : 'Jev tidak aktif. Jalankan server lokal Antay (node server.mjs) dengan API key di file .env.';
+  if (jev.on) jevTick();
+}
+function frameJpeg(v) {
+  const s = Math.min(1, 960 / Math.max(v.videoWidth, v.videoHeight)); // batas Jev: 280–1568 px per sisi
+  const c = document.createElement('canvas');
+  c.width = Math.max(280, Math.round(v.videoWidth * s)); c.height = Math.max(280, Math.round(v.videoHeight * s));
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  return new Promise((res) => c.toBlob(res, 'image/jpeg', 0.8));
+}
+async function jevTick() {
+  if (!cam.stream || !jev.on) return;
+  const v = $('#cam-video');
+  if (v.readyState >= 2 && !jev.busy) {
+    jev.busy = true;
+    try {
+      const r = await fetch('/api/jev-antrean', { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: await frameJpeg(v) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status);
+      S.jev[S.sel.petugas] = { level: j.density.level, conf: j.density.confidence, overflow: j.overflow, fallen: j.fallen, people: j.people, ms: j.ms };
+      $('#jev-out').textContent = `Jev aktif · jawaban terakhir ${j.ms} ms (${j.model}).`;
+      save();
+    } catch (e) { $('#jev-out').textContent = 'Jev gagal menjawab: ' + e.message; }
+    finally { jev.busy = false; }
+  }
+  jev.timer = setTimeout(jevTick, 3000);
+}
+function jevPanel(ev, qi) {
+  const j = S.jev[ev.id];
+  if (!j) return '';
+  const tone = j.level >= 4 ? 'crit' : j.level >= 3 ? 'warn' : 'ok';
+  const out = [`<div class="row"><span class="eyebrow">Penilaian Jev</span><span class="pill ${tone}">${JEV_LEVELS[j.level]}</span><span class="hint">yakin ${Math.round(j.conf * 100)}% · meluber ${Math.round(j.overflow * 100)}% · terjatuh ${Math.round(j.fallen * 100)}%</span></div>`];
+  if (j.fallen >= 0.7) out.push('<div class="callout crit"><b>Jev mendeteksi kemungkinan ada orang terjatuh.</b><span>Cek area antrean sekarang.</span></div>');
+  if (j.overflow >= 0.6) out.push('<div class="callout warn"><b>Jev menilai antrean meluber atau menghalangi jalur.</b><span>Rapikan barisan atau buka loket tambahan.</span></div>');
+  if (j.level >= 3 && qi.q < 10) out.push(`<div class="callout warn"><span>Jev menilai antrean ${JEV_LEVELS[j.level].toLowerCase()}, tapi kamera hanya menghitung ${qi.q} orang. Kemungkinan kamera tidak menjangkau seluruh antrean; periksa posisi kamera atau koreksi angka manual.</span></div>`);
+  return `<div class="step">${out.join('')}</div>`;
+}
+
+function camStop() {
+  clearTimeout(cam.timer); clearTimeout(jev.timer); jev.on = false;
+  if (cam.stream) cam.stream.getTracks().forEach((t) => t.stop());
+  cam.stream = null; cam.model = null; cam.hist = [];
+  $('#cam-box').hidden = true; $('#cam-start').hidden = false; $('#cam-stop').hidden = true;
+  $('#cam-msg').textContent = 'Kamera dimatikan. Antrean dihitung manual.';
+}
+$('#cam-start').addEventListener('click', camStart);
+$('#cam-stop').addEventListener('click', camStop);
+
+/* ---------- PAPAN ---------- */
+function renderBoard() {
+  const ev = evById(S.sel.papan); fillSelect($('#b-event'), ev.id);
+  const qi = queueInfo(ev), cur = currentSlot(ev), j = S.jev[ev.id];
+  const next = slotsOf(ev).map((t) => ({ t, ...slotState(ev, t) })).find((s) => s.t > S.now && s.left > 0);
+  $('#b-board').innerHTML = `<div><span class="eyebrow">${esc(ev.place)} · ${hm(S.now)}</span><h1>${esc(ev.name)}</h1></div>
+    <div class="board-tiles">
+      <div class="tile"><span class="eyebrow">Orang antre</span><span class="n">${qi.q}</span><span class="u">dihitung kamera / petugas</span></div>
+      <div class="tile"><span class="eyebrow">Perkiraan tunggu</span><span class="n">${qi.w}</span><span class="u">menit</span></div>
+      <div class="tile"><span class="eyebrow">Loket buka</span><span class="n">${ev.counters}</span><span class="u">${esc(ev.item)}</span></div>
+    </div>
+    <div class="board-line"><span>Melayani slot <b>${cur === null ? '—' : hm(cur) + '–' + hm(cur + ev.slotMin)}</b></span>
+      <span>Slot kosong berikutnya <b>${next ? hm(next.t) + ' · sisa ' + next.left : 'tidak ada'}</b></span>
+      <span>Bawa: ${esc(ev.req)}</span>${j ? `<span>Kondisi antrean (AI) <b>${JEV_LEVELS[j.level]}</b></span>` : ''}</div>
+    ${qi.long || (j && j.overflow >= 0.6) ?`<div class="board-alert">Antrean panjang. Petugas sedang membuka loket tambahan. Belum punya slot? Pesan jam datang di Antay.</div>` : ''}`;
+}
+$('#b-event').addEventListener('change', (e) => { S.sel.papan = e.target.value; save(); });
+
+/* ---------- DASBOR ---------- */
+function renderDash() {
+  const ev = evById(S.sel.dasbor); fillSelect($('#d-event'), ev.id);
+  const bs = bookingsOf(ev.id);
+  const done = bs.filter((b) => b.status === 'done').length;
+  const noShow = bs.filter((b) => b.status !== 'done' && b.slot + ev.slotMin <= S.now).length;
+  const slots = slotsOf(ev).map((t) => ({ t, ...slotState(ev, t), done: bs.filter((b) => b.slot === t && b.status === 'done').length }));
+  const left = slots.filter((s) => !s.past).reduce((n, s) => n + s.left, 0);
+  $('#d-kpis').innerHTML = [
+    ['Terdaftar', bs.length, `dari ${slots.length * ev.cap} kuota`],
+    ['Sudah ditukar', done, bs.length ? Math.round(done / bs.length * 100) + '% dari terdaftar' : '—'],
+    ['Belum datang', noShow, 'slot sudah lewat'],
+    ['Sisa kuota', left, 'di slot berikutnya'],
+  ].map(([k, v, s]) => `<div class="kpi"><span class="eyebrow">${k}</span><span class="v">${v}</span><span class="hint">${s}</span></div>`).join('');
+  $('#d-chart').innerHTML = slots.map((s) => `<div class="bar-row${s.current ? ' now' : ''}"><span class="t">${hm(s.t)}</span>
+      <span class="bar" role="img" aria-label="${s.booked} dipesan, ${s.done} ditukar dari ${ev.cap}"><i class="b" style="width:${Math.min(100, s.booked / ev.cap * 100)}%"></i><i class="d" style="width:${Math.min(100, s.done / ev.cap * 100)}%"></i></span>
+      <span class="c">${s.done}/${s.booked}</span></div>`).join('');
+  $('#d-table').innerHTML = S.events.map((e) => { const b = bookingsOf(e.id), qi = queueInfo(e);
+    return `<tr><td>${esc(e.name)}</td><td>${esc(e.place)}</td><td class="num">${b.length}</td><td class="num">${b.filter((x) => x.status === 'done').length}</td>
+      <td class="num">${b.filter((x) => x.status !== 'done' && x.slot + e.slotMin <= S.now).length}</td><td class="num">${qi.q}</td>
+      <td class="num">${qi.long ? `<span class="pill warn">${qi.w} mnt</span>` : qi.w + ' mnt'}</td></tr>`; }).join('');
+}
+$('#d-event').addEventListener('change', (e) => { S.sel.dasbor = e.target.value; save(); });
+$('#d-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const v = (id) => $(id).value.trim();
+  const open = v('#f-open'), close = v('#f-close'), slotMin = Number(v('#f-slot'));
+  if (toMin(close) - toMin(open) < slotMin) { $('#d-msg').textContent = 'Jam tutup harus lebih lambat dari jam buka, minimal satu slot.'; return; }
+  const name = v('#f-name');
+  const prefix = (name.match(/\b[A-Za-z]/g) || ['E', 'V']).slice(0, 2).join('').toUpperCase().padEnd(2, 'X');
+  const id = 'ev' + Date.now();
+  S.events.push({ id, prefix, name, place: v('#f-place'), open, close, slotMin, cap: Number(v('#f-cap')), counters: Number(v('#f-counters')), svc: Number(v('#f-svc')), req: v('#f-req'), item: v('#f-item') });
+  S.queue[id] = 0; S.sel.dasbor = id; S.sel.pengunjung = id;
+  $('#d-msg').textContent = `Event dibuat. ${slotsOf(evById(id)).length} slot sudah bisa dipesan di halaman Pengunjung.`;
+  $('#f-name').value = ''; $('#f-place').value = '';
+  save();
+});
+let resetArmed = false;
+$('#d-reset').addEventListener('click', (e) => {
+  if (!resetArmed) { resetArmed = true; e.target.textContent = 'Klik lagi untuk menghapus perubahan'; setTimeout(() => { resetArmed = false; e.target.textContent = 'Kembalikan data contoh'; }, 4000); return; }
+  resetArmed = false; e.target.textContent = 'Kembalikan data contoh';
+  S = seedState(); Object.assign(ui, { pickSlot: null, ticket: null, lookup: null, flash: null }); save();
+});
+
+/* ---------- jam demo, rute, render ---------- */
+$('#clock-minus').addEventListener('click', () => { S.now = Math.max(8 * 60, S.now - 15); save(); });
+$('#clock-plus').addEventListener('click', () => { S.now = Math.min(22 * 60, S.now + 15); save(); });
+
+function render() {
+  $('#clock-out').textContent = hm(S.now);
+  ({ pengunjung: renderVisitor, petugas: renderStaff, papan: renderBoard, dasbor: renderDash })[VIEW]();
+}
+function route() {
+  const h = location.hash.slice(1); VIEW = VIEWS.includes(h) ? h : 'pengunjung';
+  document.querySelectorAll('[data-view]').forEach((s) => { s.hidden = s.dataset.view !== VIEW; });
+  document.querySelectorAll('[data-tab]').forEach((a) => { if (a.dataset.tab === VIEW) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  if (VIEW !== 'petugas' && cam.stream) camStop();
+  render();
+}
+addEventListener('hashchange', route);
+route();
+
+// cek cepat logika inti
+console.assert(waitMinutes(10, 1.5, 3) === 5, 'waitMinutes');
+console.assert(countersNeeded(34, 1.2, 15) === 3, 'countersNeeded');
+console.assert(slotsOf({ open: '10:00', close: '11:00', slotMin: 30 }).length === 2, 'slotsOf');
+console.assert(hm(615) === '10:15' && toMin('13:45') === 825, 'hm/toMin');
+console.assert(mergeBoxes([{ bbox: [0, 0, 50, 100], score: 0.9 }, { bbox: [2, 2, 48, 96], score: 0.6 }, { bbox: [200, 0, 50, 100], score: 0.7 }]).length === 2, 'mergeBoxes ganda');
+console.assert(mergeBoxes([{ bbox: [0, 0, 50, 100], score: 0.9 }, { bbox: [10, 0, 30, 40], score: 0.5 }]).length === 1, 'mergeBoxes potongan tepi');
+</script>
