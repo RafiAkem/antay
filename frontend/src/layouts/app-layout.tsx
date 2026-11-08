@@ -1,0 +1,100 @@
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { BrandMark, NavIcon } from '@/components/navigation/icons'
+import { visibleMenu } from '@/components/navigation/menu-items'
+import { useSession } from '@/lib/session'
+
+export function AppLayout() {
+  const { user, logout } = useSession()
+  const navigate = useNavigate()
+  const items = visibleMenu(user?.role ?? null)
+
+  async function handleLogout() {
+    await logout().catch(() => undefined)
+    navigate('/masuk', { replace: true })
+  }
+
+  return (
+    <div className="grid min-h-full grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <aside className="hidden border-r border-border-soft px-3 pt-5 pb-4 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
+        <div className="flex items-center gap-2.5 px-2">
+          <BrandMark />
+          <b className="text-[18px] font-bold tracking-[-0.01em]">Antay</b>
+        </div>
+        <div className="grid gap-0.5 px-2 pt-1.5 pb-4 text-[13px] leading-[18px] text-muted">
+          <strong className="text-sm font-medium text-ink">{user?.name ?? 'Staff loket'}</strong>
+          <span>{user?.role === 'admin' ? 'Manajemen mal' : 'Petugas loket'}</span>
+        </div>
+        <nav aria-label="Menu utama" className="grid gap-0.5">
+          {items.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === '/'}
+              className={({ isActive }) =>
+                `flex h-8 items-center gap-2.5 rounded-[var(--radius-control)] px-2.5 text-sm ${
+                  isActive ? 'bg-tint-100 font-medium text-accent-ink' : 'text-muted hover:bg-raised hover:text-ink'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <span className={isActive ? 'text-accent' : ''}>
+                    <NavIcon name={item.icon} />
+                  </span>
+                  {item.label}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="mt-auto grid gap-3 border-t border-border-soft px-2 pt-3">
+          <p className="text-xs leading-[17px] text-muted">Prototipe Bandung Build Challenge 2026. Data contoh, bukan layanan resmi.</p>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="text-left text-[13px] font-medium text-muted hover:text-ink"
+          >
+            Keluar
+          </button>
+        </div>
+      </aside>
+
+      <div className="min-w-0">
+        <header className="sticky top-0 z-10 flex h-[52px] items-center justify-between gap-3 border-b border-border-soft bg-ground px-4 lg:hidden">
+          <div className="flex items-center gap-2">
+            <BrandMark size={22} />
+            <b className="text-base font-bold">Antay</b>
+          </div>
+          <button type="button" onClick={handleLogout} className="text-[13px] font-medium text-muted">
+            Keluar
+          </button>
+        </header>
+
+        <main className="px-4 pt-5 pb-28 sm:px-6 lg:px-10 lg:pt-8 lg:pb-12">
+          <Outlet />
+        </main>
+
+        <nav
+          aria-label="Menu utama"
+          className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 gap-1 border-t border-border-soft bg-surface px-2 pt-1.5 pb-[calc(6px+env(safe-area-inset-bottom,0px))] lg:hidden"
+        >
+          {items.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === '/'}
+              className={({ isActive }) =>
+                `flex h-12 flex-col items-center justify-center gap-0.5 rounded text-[11px] leading-[14px] ${
+                  isActive ? 'text-accent-ink' : 'text-muted'
+                }`
+              }
+            >
+              <NavIcon name={item.icon} />
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
+    </div>
+  )
+}

@@ -1,0 +1,833 @@
+openapi: 3.1.0
+info:
+  title: Antay API
+  version: dev
+  description: |
+    API penukaran tiket dan antrean event. Semua respons sukses memakai envelope
+    `{ message, data, meta }`; semua respons gagal memakai `{ error }`. Semua
+    respons `Cache-Control: no-store` dan mengembalikan `X-Request-ID`.
+    Operasi tulis wajib mengirim `X-CSRF-TOKEN` yang sama dengan cookie `antay_csrf`.
+servers:
+  - url: http://localhost:8080
+    description: Lokal
+tags:
+  - name: public
+  - name: operational
+  - name: analytics
+  - name: system
+
+paths:
+  /csrf:
+    get:
+      tags: [system]
+      summary: Ambil token CSRF
+      operationId: getCsrf
+      security: []
+      responses:
+        "204":
+          description: Cookie `antay_csrf` dipasang; nilainya dikirim balik di header pada operasi tulis.
+
+  /health/live:
+    get:
+      tags: [system]
+      summary: Liveness probe
+      operationId: healthLive
+      security: []
+      responses:
+        "200":
+          description: Proses hidup.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+  /health/ready:
+    get:
+      tags: [system]
+      summary: Readiness probe (menyentuh database)
+      operationId: healthReady
+      security: []
+      responses:
+        "200":
+          description: Siap menerima trafik.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+        "503":
+          description: Database tidak siap.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+  /health/startup:
+    get:
+      tags: [system]
+      summary: Startup probe
+      operationId: healthStartup
+      security: []
+      responses:
+        "200":
+          description: Siap menerima trafik.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+        "503":
+          description: Database tidak siap.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+  /health/dependencies:
+    get:
+      tags: [system]
+      summary: Status dependensi
+      operationId: healthDependencies
+      security: []
+      responses:
+        "200":
+          description: Semua dependensi UP.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+        "503":
+          description: Ada dependensi DOWN.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+
+  /public/v1/events:
+    get:
+      tags: [public]
+      summary: Daftar event open hari ini
+      operationId: listPublicEvents
+      security: []
+      responses:
+        "200":
+          description: Sudah termasuk slot dan sisa kuota.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EventListEnvelope" }
+
+  /public/v1/events/{eventId}:
+    get:
+      tags: [public]
+      summary: Detail event open
+      operationId: getPublicEvent
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Event ditemukan.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EventEnvelope" }
+        "404":
+          $ref: "#/components/responses/Error404"
+
+  /public/v1/events/{eventId}/board:
+    get:
+      tags: [public]
+      summary: Data papan antrean untuk layar TV
+      operationId: getEventBoard
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Maksimal 4 slot upcoming.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoardEnvelope" }
+        "404":
+          $ref: "#/components/responses/Error404"
+
+  /public/v1/tickets:
+    post:
+      tags: [public]
+      summary: Buat tiket baru
+      operationId: createTicket
+      security:
+        - csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateTicketRequest" }
+      responses:
+        "201":
+          description: Tiket dibuat.
+          headers:
+            Location:
+              description: URL tiket, misalnya `/public/v1/tickets/GL-ABCD`.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TicketEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /public/v1/tickets/{code}:
+    get:
+      tags: [public]
+      summary: Lihat tiket berdasarkan kode
+      operationId: getTicket
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/TicketCode"
+      responses:
+        "200":
+          description: Tiket ditemukan.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TicketEnvelope" }
+        "404":
+          $ref: "#/components/responses/Error404"
+
+  /operational/v1/auth/login:
+    post:
+      tags: [operational]
+      summary: Masuk sebagai petugas atau admin
+      operationId: login
+      security:
+        - csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          description: Cookie `antay_session` dipasang.
+          headers:
+            Set-Cookie:
+              description: "`antay_session` HttpOnly, SameSite=Strict."
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "415":
+          $ref: "#/components/responses/Error415"
+
+  /operational/v1/auth/logout:
+    post:
+      tags: [operational]
+      summary: Keluar
+      operationId: logout
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      responses:
+        "204":
+          description: Cookie sesi dihapus.
+        "401":
+          $ref: "#/components/responses/Error401"
+
+  /operational/v1/auth/me:
+    get:
+      tags: [operational]
+      summary: User yang sedang login
+      operationId: me
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: User aktif.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+
+  /operational/v1/events:
+    get:
+      tags: [operational]
+      summary: Semua event hari ini
+      operationId: listEvents
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Untuk pemilih event di halaman petugas.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EventListEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+    post:
+      tags: [operational]
+      summary: Buat event (admin)
+      operationId: createEvent
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateEventRequest" }
+      responses:
+        "201":
+          description: Event dibuat; `codePrefix` dan `eventDate` diisi server.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EventEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/events/{eventId}/waiting:
+    get:
+      tags: [operational]
+      summary: Pemegang tiket yang belum ditukar
+      operationId: listWaiting
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - name: slot
+          in: query
+          required: false
+          description: Jam mulai dipisah koma, misalnya `10:30,11:00`. Tanpa ini dipakai slot berjalan dan berikutnya.
+          schema: { type: string }
+      responses:
+        "200":
+          description: Daftar tiket dan slot yang dipakai.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WaitingEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+
+  /operational/v1/events/{eventId}/queue:
+    patch:
+      tags: [operational]
+      summary: Ubah jumlah antrean atau loket
+      operationId: updateQueue
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateQueueRequest" }
+      responses:
+        "200":
+          description: Event terbaru.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EventEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/tickets/{code}:
+    get:
+      tags: [operational]
+      summary: Cek tiket untuk petugas
+      operationId: lookupTicket
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TicketCode"
+      responses:
+        "200":
+          description: Tiket dan hasil pemeriksaan.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TicketLookupEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+        "404":
+          $ref: "#/components/responses/Error404"
+
+  /operational/v1/tickets/{code}/redemptions:
+    post:
+      tags: [operational]
+      summary: Tukar tiket
+      operationId: redeemTicket
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/TicketCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RedemptionRequest" }
+      responses:
+        "200":
+          description: Tiket berstatus `redeemed`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TicketEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /analytics/v1/events/{eventId}/summary:
+    get:
+      tags: [analytics]
+      summary: Ringkasan satu event (admin)
+      operationId: analyticsSummary
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Total dan rincian per slot.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SummaryEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+
+  /analytics/v1/overview:
+    get:
+      tags: [analytics]
+      summary: Ringkasan semua event hari ini (admin)
+      operationId: analyticsOverview
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Satu baris per event.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OverviewEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: antay_session
+      description: Cookie sesi HttpOnly dari login.
+    csrfHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-TOKEN
+      description: Harus sama dengan cookie `antay_csrf`.
+
+  parameters:
+    EventId:
+      name: eventId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    TicketCode:
+      name: code
+      in: path
+      required: true
+      description: Kode tiket; dinormalisasi ke huruf besar.
+      schema: { type: string, example: GL-ABCD }
+
+  responses:
+    Error400:
+      description: Body bukan JSON valid, key tidak dikenal, atau field wajib kosong.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Error401:
+      description: Tidak ada sesi atau sesi kedaluwarsa.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Error403:
+      description: Role tidak cukup atau token CSRF tidak cocok.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Error404:
+      description: Event atau kode tiket tidak ada.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Error409:
+      description: Konflik bisnis, misalnya tiket sudah ditukar atau event sudah tutup.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Error415:
+      description: Content type bukan JSON.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Error422:
+      description: Format benar tapi tidak lolos aturan bisnis.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  schemas:
+    Meta:
+      type: object
+      required: [timestamp, version]
+      properties:
+        timestamp: { type: string, format: date-time }
+        version: { type: string }
+    Envelope:
+      type: object
+      required: [message, data, meta]
+      properties:
+        message: { type: string }
+        data: {}
+        meta: { $ref: "#/components/schemas/Meta" }
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [message, code, traceId]
+          properties:
+            message: { type: string }
+            code: { type: string }
+            traceId: { type: string }
+            details:
+              type: array
+              items:
+                type: object
+                required: [field, issue]
+                properties:
+                  field: { type: string }
+                  issue: { type: string }
+
+    Health:
+      type: object
+      properties:
+        status: { type: string, enum: [UP, DOWN] }
+        service: { type: string }
+        version: { type: string }
+        timestamp: { type: string, format: date-time }
+        checks:
+          type: object
+          additionalProperties: { type: string }
+
+    User:
+      type: object
+      required: [id, email, name, role]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        name: { type: string }
+        role: { type: string, enum: [staff, admin] }
+    EventRef:
+      type: object
+      required: [id, name, place, item, requirement, slotMinutes]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        place: { type: string }
+        item: { type: string }
+        requirement: { type: string }
+        slotMinutes: { type: integer }
+    Slot:
+      type: object
+      required: [start, end, capacity, booked, redeemed, left, past, current]
+      properties:
+        start: { type: string, example: "10:00" }
+        end: { type: string, example: "10:30" }
+        capacity: { type: integer }
+        booked: { type: integer }
+        redeemed: { type: integer }
+        left: { type: integer }
+        past: { type: boolean }
+        current: { type: boolean }
+    Queue:
+      type: object
+      required: [waiting, waitMinutes, countersNeeded, long]
+      properties:
+        waiting: { type: integer }
+        waitMinutes: { type: integer }
+        countersNeeded: { type: integer }
+        long: { type: boolean }
+    Event:
+      type: object
+      required: [id, codePrefix, name, place, item, requirement, eventDate, openTime,
+                 closeTime, slotMinutes, slotCapacity, counterCount, serviceSeconds,
+                 waitingCount, status, leftTotal, slots]
+      properties:
+        id: { type: string, format: uuid }
+        codePrefix: { type: string }
+        name: { type: string }
+        place: { type: string }
+        item: { type: string }
+        requirement: { type: string }
+        eventDate: { type: string, format: date }
+        openTime: { type: string, example: "10:00" }
+        closeTime: { type: string, example: "20:00" }
+        slotMinutes: { type: integer }
+        slotCapacity: { type: integer }
+        counterCount: { type: integer }
+        serviceSeconds: { type: integer }
+        waitingCount: { type: integer }
+        status: { type: string, enum: [draft, open, closed] }
+        leftTotal: { type: integer }
+        slots:
+          type: array
+          items: { $ref: "#/components/schemas/Slot" }
+    BoardEvent:
+      type: object
+      required: [id, name, place, item, requirement, openTime, closeTime,
+                 slotMinutes, slotCapacity, counterCount]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        place: { type: string }
+        item: { type: string }
+        requirement: { type: string }
+        openTime: { type: string }
+        closeTime: { type: string }
+        slotMinutes: { type: integer }
+        slotCapacity: { type: integer }
+        counterCount: { type: integer }
+    Ticket:
+      type: object
+      required: [id, code, visitorName, slotStart, slotEnd, status, redeemedAt,
+                 redeemedCounter, event, queue]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        visitorName: { type: string }
+        slotStart: { type: string }
+        slotEnd: { type: string }
+        status: { type: string, enum: [booked, redeemed, cancelled] }
+        redeemedAt:
+          type: [string, "null"]
+          format: date-time
+        redeemedCounter:
+          type: [integer, "null"]
+        event: { $ref: "#/components/schemas/EventRef" }
+        queue: { $ref: "#/components/schemas/Queue" }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      additionalProperties: false
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    CreateTicketRequest:
+      type: object
+      required: [eventId, slotStart, visitorName]
+      additionalProperties: false
+      properties:
+        eventId: { type: string, format: uuid }
+        slotStart: { type: string, example: "10:30" }
+        visitorName: { type: string, minLength: 3, maxLength: 60 }
+    CreateEventRequest:
+      type: object
+      required: [name, place, item, requirement, openTime, closeTime, slotMinutes,
+                 slotCapacity, counterCount, serviceSeconds]
+      additionalProperties: false
+      properties:
+        name: { type: string }
+        place: { type: string }
+        item: { type: string }
+        requirement: { type: string }
+        openTime: { type: string, example: "10:00" }
+        closeTime: { type: string, example: "18:00" }
+        slotMinutes: { type: integer, minimum: 10, maximum: 120 }
+        slotCapacity: { type: integer, minimum: 1, maximum: 500 }
+        counterCount: { type: integer, minimum: 1, maximum: 20 }
+        serviceSeconds: { type: integer, minimum: 30, maximum: 600 }
+    UpdateQueueRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        waitingCount: { type: integer, minimum: 0 }
+        counterCount: { type: integer, minimum: 1, maximum: 20 }
+    RedemptionRequest:
+      type: object
+      required: [eventId, counter, ktpChecked]
+      additionalProperties: false
+      properties:
+        eventId: { type: string, format: uuid }
+        counter: { type: integer, minimum: 1, maximum: 20 }
+        ktpChecked: { type: boolean }
+
+    UserEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                user: { $ref: "#/components/schemas/User" }
+    EventEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                event: { $ref: "#/components/schemas/Event" }
+    EventListEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                events:
+                  type: array
+                  items: { $ref: "#/components/schemas/Event" }
+    BoardEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                event: { $ref: "#/components/schemas/BoardEvent" }
+                now: { type: string, example: "11:15" }
+                queue: { $ref: "#/components/schemas/Queue" }
+                currentSlot:
+                  oneOf:
+                    - $ref: "#/components/schemas/Slot"
+                    - type: "null"
+                nextOpenSlot:
+                  oneOf:
+                    - $ref: "#/components/schemas/Slot"
+                    - type: "null"
+                upcoming:
+                  type: array
+                  items: { $ref: "#/components/schemas/Slot" }
+    TicketEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                ticket: { $ref: "#/components/schemas/Ticket" }
+    TicketLookupEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                ticket: { $ref: "#/components/schemas/Ticket" }
+                check:
+                  type: object
+                  required: [timing, wrongEvent, alreadyRedeemed, canRedeem]
+                  properties:
+                    timing: { type: string, enum: [early, on_time, late, past_slot] }
+                    wrongEvent: { type: boolean }
+                    alreadyRedeemed: { type: boolean }
+                    canRedeem: { type: boolean }
+    WaitingEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                tickets:
+                  type: array
+                  items: { $ref: "#/components/schemas/Ticket" }
+                slots:
+                  type: array
+                  items: { type: string }
+    SummaryEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                event: { $ref: "#/components/schemas/EventRef" }
+                totals:
+                  type: object
+                  properties:
+                    registered: { type: integer }
+                    redeemed: { type: integer }
+                    pending: { type: integer }
+                    cancelled: { type: integer }
+                    noShow: { type: integer }
+                    capacity: { type: integer }
+                    left: { type: integer }
+                slots:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      start: { type: string }
+                      end: { type: string }
+                      registered: { type: integer }
+                      redeemed: { type: integer }
+                      capacity: { type: integer }
+                      past: { type: boolean }
+                      current: { type: boolean }
+    OverviewEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                events:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id: { type: string, format: uuid }
+                      name: { type: string }
+                      place: { type: string }
+                      openTime: { type: string }
+                      closeTime: { type: string }
+                      registered: { type: integer }
+                      redeemed: { type: integer }
+                      queue: { $ref: "#/components/schemas/Queue" }

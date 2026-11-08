@@ -1,3 +1,10 @@
 .env
+.env.*
+!.env.example
 node_modules/
+dist/
+bin/
+*.exe
+*.log
 .taste-skill/
+.DS_Store
