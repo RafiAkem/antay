@@ -1,13 +1,13 @@
-import { CounterBar } from '@/components/operational/counter-bar'
-import { Notice } from '@/components/operational/notice'
-import { QueuePanel } from '@/components/operational/queue-panel'
-import { TicketLookup } from '@/components/operational/ticket-lookup'
-import { useTicketDesk } from '@/components/operational/use-ticket-desk'
-import { WaitingList } from '@/components/operational/waiting-list'
+import { CounterBar } from '@/components/counter/counter-bar'
+import { Notice } from '@/components/counter/notice'
+import { QueuePanel } from '@/components/counter/queue-panel'
+import { TicketLookup } from '@/components/counter/ticket-lookup'
+import { useTicketDesk } from '@/components/counter/use-ticket-desk'
+import { WaitingList } from '@/components/counter/waiting-list'
 import { Button } from '@/components/ui/button'
 import { Empty } from '@/components/ui/pill'
 
-export function TicketDeskPage() {
+export function CounterPage() {
   const desk = useTicketDesk()
   const { event } = desk
 

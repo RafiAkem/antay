@@ -3,13 +3,15 @@ import { AppLayout } from '@/layouts/app-layout'
 import { PublicLayout } from '@/layouts/public-layout'
 import { useSession } from '@/lib/session'
 import type { Role } from '@/types/api'
-import { AnalyticsPage } from '@/pages/analytics/analytics-page'
 import { BoardPage } from '@/pages/board/board-page'
+import { CounterPage } from '@/pages/counter/counter-page'
+import { DashboardPage } from '@/pages/dashboard/dashboard-page'
+import { EventPage } from '@/pages/event/event-page'
+import { EventsPage } from '@/pages/events/events-page'
+import { HomePage } from '@/pages/home/home-page'
 import { ForbiddenPage } from '@/pages/common/forbidden-page'
 import { NotFoundPage } from '@/pages/common/not-found-page'
 import { LoginPage } from '@/pages/login/login-page'
-import { TicketDeskPage } from '@/pages/operational/ticket-desk-page'
-import { VisitorPage } from '@/pages/visitor/visitor-page'
 
 function LoadingShell() {
   return (
@@ -25,7 +27,7 @@ function LoadingShell() {
 function RequireRole({ roles, children }: { roles: Role[]; children: React.ReactNode }) {
   const { user, loading } = useSession()
   if (loading) return <LoadingShell />
-  if (!user) return <Navigate to="/masuk" replace />
+  if (!user) return <Navigate to="/login" replace />
   if (!roles.includes(user.role)) return <ForbiddenPage />
   return <>{children}</>
 }
@@ -34,11 +36,13 @@ export function App() {
   return (
     <Routes>
       <Route element={<PublicLayout />}>
-        <Route path="/" element={<VisitorPage />} />
-        <Route path="/papan" element={<BoardPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/events" element={<EventsPage />} />
+        <Route path="/events/:eventId" element={<EventPage />} />
+        <Route path="/board" element={<BoardPage />} />
       </Route>
 
-      <Route path="/masuk" element={<LoginPage />} />
+      <Route path="/login" element={<LoginPage />} />
 
       <Route
         element={
@@ -47,12 +51,12 @@ export function App() {
           </RequireRole>
         }
       >
-        <Route path="/loket" element={<TicketDeskPage />} />
+        <Route path="/counter" element={<CounterPage />} />
         <Route
-          path="/dasbor"
+          path="/dashboard"
           element={
             <RequireRole roles={['admin']}>
-              <AnalyticsPage />
+              <DashboardPage />
             </RequireRole>
           }
         />

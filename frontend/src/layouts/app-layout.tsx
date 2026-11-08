@@ -10,7 +10,7 @@ export function AppLayout() {
 
   async function handleLogout() {
     await logout().catch(() => undefined)
-    navigate('/masuk', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   return (

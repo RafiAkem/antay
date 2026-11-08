@@ -2,11 +2,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardHead } from '@/components/ui/card'
 import { Empty } from '@/components/ui/pill'
 import { Select } from '@/components/ui/select'
-import { CreateEventForm } from '@/components/analytics/create-event-form'
-import { EventOverview } from '@/components/analytics/event-overview'
-import { SlotChart } from '@/components/analytics/slot-chart'
-import { SummaryKpis } from '@/components/analytics/summary-kpis'
-import { useAnalyticsPage } from '@/components/analytics/use-analytics-page'
+import { CreateEventForm } from '@/components/dashboard/create-event-form'
+import { EventOverview } from '@/components/dashboard/event-overview'
+import { SlotChart } from '@/components/dashboard/slot-chart'
+import { SummaryKpis } from '@/components/dashboard/summary-kpis'
+import { useAnalyticsPage } from '@/components/dashboard/use-analytics-page'
 import { todayLabel } from '@/lib/format'
 
 function Skeleton() {
@@ -54,7 +54,7 @@ function Legend() {
   )
 }
 
-export function AnalyticsPage() {
+export function DashboardPage() {
   const page = useAnalyticsPage()
   const selected = page.events.find((event) => event.id === page.eventId)
 

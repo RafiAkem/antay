@@ -12,15 +12,18 @@ type SessionState = {
 const SessionContext = createContext<SessionState | null>(null)
 const HINT = 'antay-session-hint'
 
-// Pengunjung anonim tidak perlu menanyakan sesi: tanpa petunjuk login dan di
-// halaman publik, probe /me hanya menghasilkan 401 yang mengotori console.
+// Hanya halaman yang dijaga yang perlu menanyakan sesi. Selain itu, probe /me
+// hanya menghasilkan 401 yang mengotori console pengunjung.
+const GUARDED_PATHS = ['/counter', '/dashboard', '/403']
+
 function needsProbe(): boolean {
   try {
     if (localStorage.getItem(HINT) === '1') return true
   } catch {
     return true
   }
-  return !['/', '/papan', '/masuk'].includes(window.location.pathname)
+  const path = window.location.pathname
+  return GUARDED_PATHS.some((guarded) => path === guarded || path.startsWith(`${guarded}/`))
 }
 
 export function SessionProvider({ children }: { children: ReactNode }) {

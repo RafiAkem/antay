@@ -16,11 +16,14 @@ export function PublicLayout() {
           </Link>
           <div className="flex items-center gap-3 text-[13px]">
             <span className="hidden text-muted sm:inline">Summarecon Mall Bandung</span>
-            <Link to="/papan" className="font-medium text-muted hover:text-ink">
+            <Link to="/events" className="hidden font-medium text-muted hover:text-ink sm:inline">
+              Event
+            </Link>
+            <Link to="/board" className="font-medium text-muted hover:text-ink">
               Papan
             </Link>
             <Link
-              to={user ? (user.role === 'admin' ? '/dasbor' : '/loket') : '/masuk'}
+              to={user ? (user.role === 'admin' ? '/dashboard' : '/counter') : '/login'}
               className="font-medium text-accent-ink hover:underline"
             >
               {user ? 'Buka loket' : 'Masuk petugas'}

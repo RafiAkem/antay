@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ApiError, fetchBoard, fetchOpenEvents } from '@/lib/api'
 import type { BoardData, EventDetail } from '@/types/api'
 import { Button } from '@/components/ui/button'
@@ -94,9 +95,9 @@ export function BoardPage() {
           title="Belum ada event hari ini."
           hint="Papan antrean menyala setelah penyelenggara membuka event."
           action={
-            <a href="/" className="font-medium text-accent-ink hover:underline">
+            <Link to="/" className="font-medium text-accent-ink hover:underline">
               Lihat halaman pengunjung
-            </a>
+            </Link>
           }
         />
       ) : (
@@ -124,9 +125,9 @@ export function BoardPage() {
                 title="Event tidak tersedia."
                 hint="Event ini sudah ditutup atau tidak ditemukan. Pilih event lain atau kembali ke halaman pengunjung."
                 action={
-                  <a href="/" className="font-medium text-accent-ink hover:underline">
+                  <Link to="/" className="font-medium text-accent-ink hover:underline">
                     Lihat event hari ini
-                  </a>
+                  </Link>
                 }
               />
             ) : (

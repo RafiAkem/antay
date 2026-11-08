@@ -21,7 +21,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
 
   const next = safeNext(params.get('next'))
-  const destination = (role: string) => next ?? (role === 'admin' ? '/dasbor' : '/loket')
+  const destination = (role: string) => next ?? (role === 'admin' ? '/dashboard' : '/counter')
 
   if (!loading && user) return <Navigate to={destination(user.role)} replace />
 

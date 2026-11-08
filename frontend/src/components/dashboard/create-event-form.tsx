@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent, type InputHTMLAttributes } from 'react'
+﻿import { useState, type ChangeEvent, type FormEvent, type InputHTMLAttributes } from 'react'
 import { ApiError, createEvent } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardHead } from '@/components/ui/card'
@@ -10,7 +10,7 @@ import {
   toEventPayload,
   validateEvent,
   type EventFormValues,
-} from '@/components/analytics/event-form-schedule'
+} from '@/components/dashboard/event-form-schedule'
 import type { EventDetail } from '@/types/api'
 
 type FormFieldProps = {

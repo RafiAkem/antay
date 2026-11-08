@@ -6,12 +6,17 @@ Prototipe aslinya tetap ada di branch `prototype` (`loket-pintar.html` + `server
 
 ## Isi
 
-| Halaman | Untuk | Fungsi |
-|---|---|---|
-| `/` | Pengunjung | Pilih event dan slot jam datang, dapat kode + QR, lihat status tiket |
-| `/loket` | Petugas loket | Cek kode, cocokkan KTP, serahkan item, koreksi antrean, atur loket buka |
-| `/papan` | Layar TV | Antrean, perkiraan tunggu, slot berjalan dan berikutnya |
-| `/dasbor` | Admin mal | Statistik per slot, ringkasan semua event, buat event baru |
+| Halaman | Route | Untuk | Fungsi |
+|---|---|---|---|
+| Beranda | `/` | Pengunjung | Penjelasan produk dan cara pakai |
+| Event | `/events` | Pengunjung | Card semua event hari ini |
+| Detail event | `/events/:eventId` | Pengunjung | Pilih slot jam datang, dapat kode + QR, lihat tiket |
+| Papan | `/board` | Layar TV | Antrean, perkiraan tunggu, slot berjalan dan berikutnya |
+| Masuk | `/login` | Petugas | Login akun staff atau admin |
+| Loket | `/counter` | Petugas loket | Cek kode, cocokkan KTP, serahkan item, koreksi antrean |
+| Dasbor | `/dashboard` | Admin mal | Statistik per slot, ringkasan semua event, buat event baru |
+
+Nama route dan folder memakai bahasa Inggris; isi teks tetap bahasa Indonesia.
 
 ## Struktur
 
