@@ -9,8 +9,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/RafiAkem/antay/backend/internal/config"
-	"github.com/RafiAkem/antay/backend/internal/db"
+	"github.com/RafiAkem/antay/backend/internal/infrastructure/config"
+	"github.com/RafiAkem/antay/backend/internal/infrastructure/postgres"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -27,7 +27,7 @@ func run() error {
 	cfg := config.Load()
 	ctx := context.Background()
 
-	pool, err := db.Open(ctx, cfg.DatabaseURL)
+	pool, err := postgres.Open(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return err
 	}

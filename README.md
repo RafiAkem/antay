@@ -21,25 +21,42 @@ Nama route dan folder memakai bahasa Inggris; isi teks tetap bahasa Indonesia.
 ## Struktur
 
 ```
-backend/                 Go 1.27, net/http, pgx, sqlc
-  cmd/api/               server HTTP
-  cmd/seed/              data contoh + migrasi
-  internal/app/          dependensi bersama, helper slot dan antrean, DTO
-  internal/auth/         JWT RS256 di cookie HttpOnly, CSRF double submit
-  internal/public/       endpoint tanpa sesi (pengunjung, papan)
-  internal/operational/  endpoint petugas dan admin
-  internal/analytics/    endpoint dasbor
-  internal/health/       /health/live, /ready, /startup, /dependencies
-  internal/db/           pool + migrasi tertanam
-  db/queries/            query sqlc
-  internal/store/        hasil generate sqlc (jangan diedit)
-  openapi.yaml           spec OpenAPI 3.1
-frontend/                React 19 + TypeScript + Vite 8 + Tailwind 4
-  src/lib/api.ts         satu-satunya pemanggil fetch
-  src/components/ui/     primitif (Button, Input, Select, Modal, Toast)
-  src/pages/             halaman per menu
-docs/api-contract.md     kontrak API yang dipakai bersama
+backend/                       Go 1.27, net/http, pgx, sqlc — Domain-Driven Design
+  cmd/api/                     composition root: rangkai repo -> service -> handler
+  cmd/seed/                    data contoh + migrasi
+  internal/domain/             inti bisnis, tanpa pgx dan tanpa HTTP
+    shared/                    jam slot (menit sejak tengah malam) dan Clock
+    event/                     aggregate event: slot, kuota, antrean, validasi jadwal
+    ticket/                    aggregate tiket: kode, slot kedatangan, timing loket
+    user/                      akun petugas/admin dan sesi
+  internal/application/        use case, hanya bergantung ke interface domain
+    catalog/                   daftar event dan papan antrean (pengunjung)
+    booking/                   pesan tiket + retry kode bentrok, lihat tiket
+    identity/                  login dan sesi petugas
+    counter/                   loket: pemegang tiket, koreksi antrean, cek, tukar
+    scheduling/                admin membuat event
+    reporting/                 dasbor; read model sendiri untuk query agregat
+  internal/infrastructure/
+    config/                    baca environment dan .env
+    postgres/                  pool, migrasi tertanam, implementasi repository
+      queries/                 query sqlc
+      store/                   hasil generate sqlc (jangan diedit)
+      migrations/              skema SQL
+    security/                  JWT RS256 dan bcrypt
+  internal/interfaces/http/    router dan rute
+    handler/                   handler per area, memetakan error domain ke HTTP
+    middleware/                sesi cookie HttpOnly, CSRF double submit, log, recover
+    dto/                       bentuk JSON yang dikirim ke frontend
+    response/                  envelope sukses/error standar
+  openapi.yaml                 spec OpenAPI 3.1
+frontend/                      React 19 + TypeScript + Vite 8 + Tailwind 4
+  src/lib/api.ts               satu-satunya pemanggil fetch
+  src/components/ui/           primitif (Button, Input, Select, Modal, Toast)
+  src/pages/                   halaman per menu
+docs/api-contract.md           kontrak API yang dipakai bersama
 ```
+
+Arah dependensi: `interfaces -> application -> domain <- infrastructure`. Domain tidak mengimpor layer lain; repository didefinisikan sebagai interface di domain dan diimplementasikan di `infrastructure/postgres`.
 
 ## Menjalankan
 
