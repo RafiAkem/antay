@@ -5,16 +5,24 @@ import (
 
 	"github.com/RafiAkem/antay/backend/internal/domain/user"
 	"github.com/RafiAkem/antay/backend/internal/interfaces/http/middleware"
+	"github.com/RafiAkem/antay/backend/internal/interfaces/http/response"
 )
 
 func registerSystem(mux *nethttp.ServeMux, h Handlers) {
-	mux.HandleFunc("GET /", h.Health.Root)
+	mux.HandleFunc("GET /{$}", h.Health.Root)
+	// Tanpa ini GET ke path yang tidak dikenal dijawab mux dengan teks polos,
+	// bukan format error API.
+	mux.HandleFunc("GET /", notFound)
 	mux.HandleFunc("GET /csrf", h.Auth.CSRF)
 	mux.HandleFunc("GET /health/live", h.Health.Live)
 	mux.HandleFunc("GET /health/ready", h.Health.Ready)
 	mux.HandleFunc("GET /health/startup", h.Health.Ready)
 	// dependencies untuk dashboard internal; jangan diekspos ke publik.
 	mux.HandleFunc("GET /health/dependencies", h.Health.Ready)
+}
+
+func notFound(w nethttp.ResponseWriter, r *nethttp.Request) {
+	response.NotFound(w, r, "Endpoint tidak ditemukan.")
 }
 
 // registerPublic: halaman pengunjung dan papan antrean, tanpa sesi.

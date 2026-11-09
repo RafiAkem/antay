@@ -3,10 +3,15 @@ info:
   title: Antay API
   version: dev
   description: |
-    API penukaran tiket dan antrean event. Semua respons sukses memakai envelope
-    `{ message, data, meta }`; semua respons gagal memakai `{ error }`. Semua
-    respons `Cache-Control: no-store` dan mengembalikan `X-Request-ID`.
-    Operasi tulis wajib mengirim `X-CSRF-TOKEN` yang sama dengan cookie `antay_csrf`.
+    API penukaran tiket dan antrean event. Respons sukses memakai envelope
+    `{ message, data, meta }`, kecuali `204` (tanpa body) dan endpoint `/health/*`.
+    Respons gagal memakai `{ error }`, kecuali `503` dari `/health/*`. Semua respons
+    mengembalikan `X-Request-ID`; semua respons memakai `Cache-Control: no-store`, kecuali `405` dari router.
+    Operasi tulis wajib mengirim `X-CSRF-TOKEN` yang sama dengan cookie `antay_csrf`;
+    bila tidak, server menjawab `403 CSRF_MISSING` sebelum memeriksa sesi.
+    Body request dibatasi 1 MB, harus berisi tepat satu objek JSON, dan tidak boleh
+    memuat `\u0000`.
+    Setiap endpoint bisa menjawab `500 INTERNAL` untuk kesalahan tak terduga.
 servers:
   - url: http://localhost:8080
     description: Lokal
@@ -17,6 +22,19 @@ tags:
   - name: system
 
 paths:
+  /:
+    get:
+      tags: [system]
+      summary: Info layanan
+      operationId: getRoot
+      security: []
+      responses:
+        "200":
+          description: Nama layanan dan versinya.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RootEnvelope" }
+
   /csrf:
     get:
       tags: [system]
@@ -162,10 +180,10 @@ paths:
               schema: { $ref: "#/components/schemas/TicketEnvelope" }
         "400":
           $ref: "#/components/responses/Error400"
+        "403":
+          $ref: "#/components/responses/Error403"
         "404":
           $ref: "#/components/responses/Error404"
-        "415":
-          $ref: "#/components/responses/Error415"
         "422":
           $ref: "#/components/responses/Error422"
 
@@ -211,9 +229,12 @@ paths:
         "400":
           $ref: "#/components/responses/Error400"
         "401":
-          $ref: "#/components/responses/Error401"
-        "415":
-          $ref: "#/components/responses/Error415"
+          description: Email atau kata sandi salah (`INVALID_CREDENTIALS`).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "403":
+          $ref: "#/components/responses/Error403"
 
   /operational/v1/auth/logout:
     post:
@@ -228,6 +249,8 @@ paths:
           description: Cookie sesi dihapus.
         "401":
           $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
 
   /operational/v1/auth/me:
     get:
@@ -286,8 +309,6 @@ paths:
           $ref: "#/components/responses/Error403"
         "409":
           $ref: "#/components/responses/Error409"
-        "415":
-          $ref: "#/components/responses/Error415"
         "422":
           $ref: "#/components/responses/Error422"
 
@@ -311,8 +332,12 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/WaitingEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
         "401":
           $ref: "#/components/responses/Error401"
+        "404":
+          $ref: "#/components/responses/Error404"
 
   /operational/v1/events/{eventId}/queue:
     patch:
@@ -339,8 +364,10 @@ paths:
           $ref: "#/components/responses/Error400"
         "401":
           $ref: "#/components/responses/Error401"
-        "415":
-          $ref: "#/components/responses/Error415"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
         "422":
           $ref: "#/components/responses/Error422"
 
@@ -353,12 +380,19 @@ paths:
         - cookieAuth: []
       parameters:
         - $ref: "#/components/parameters/TicketCode"
+        - name: eventId
+          in: query
+          required: false
+          description: Event yang sedang dilayani loket. Bila diisi, tiket dari event lain ditandai `wrongEvent`.
+          schema: { type: string, format: uuid }
       responses:
         "200":
           description: Tiket dan hasil pemeriksaan.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/TicketLookupEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
         "401":
           $ref: "#/components/responses/Error401"
         "404":
@@ -389,10 +423,12 @@ paths:
           $ref: "#/components/responses/Error400"
         "401":
           $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
         "409":
           $ref: "#/components/responses/Error409"
-        "415":
-          $ref: "#/components/responses/Error415"
         "422":
           $ref: "#/components/responses/Error422"
 
@@ -459,12 +495,12 @@ components:
       name: code
       in: path
       required: true
-      description: Kode tiket; dinormalisasi ke huruf besar.
+      description: Kode tiket, tidak peka huruf besar/kecil. Endpoint public juga membuang spasi dan menambahkan tanda hubung yang lupa ditulis.
       schema: { type: string, example: GL-ABCD }
 
   responses:
     Error400:
-      description: Body bukan JSON valid, key tidak dikenal, atau field wajib kosong.
+      description: Body bukan JSON valid, key tidak dikenal, atau field kosong atau salah bentuk (`VALIDATION`).
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -474,7 +510,7 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
     Error403:
-      description: Role tidak cukup atau token CSRF tidak cocok.
+      description: Role tidak cukup (`FORBIDDEN`) atau token CSRF tidak cocok (`CSRF_MISSING`).
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -484,17 +520,12 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
     Error409:
-      description: Konflik bisnis, misalnya tiket sudah ditukar atau event sudah tutup.
-      content:
-        application/json:
-          schema: { $ref: "#/components/schemas/ErrorResponse" }
-    Error415:
-      description: Content type bukan JSON.
+      description: Tiket sudah ditukar (`ALREADY_REDEEMED`), milik event lain (`WRONG_EVENT`), statusnya bukan `booked` (`NOT_BOOKED`), atau prefix event sudah dipakai (`CONFLICT`).
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
     Error422:
-      description: Format benar tapi tidak lolos aturan bisnis.
+      description: Format benar tapi tidak lolos aturan bisnis. Kode per endpoint - buat tiket `EVENT_CLOSED`, `SLOT_INVALID`, `SLOT_PAST`, `SLOT_FULL`; buat event `INVALID_SCHEDULE`; koreksi antrean `INVALID_QUEUE`; tukar tiket `KTP_REQUIRED`, `INVALID_COUNTER`.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -569,9 +600,9 @@ components:
         start: { type: string, example: "10:00" }
         end: { type: string, example: "10:30" }
         capacity: { type: integer }
-        booked: { type: integer }
+        booked: { type: integer, description: "Semua tiket yang tidak `cancelled`, termasuk yang sudah `redeemed`." }
         redeemed: { type: integer }
-        left: { type: integer }
+        left: { type: integer, description: "`max(0, capacity - booked)`" }
         past: { type: boolean }
         current: { type: boolean }
     Queue:
@@ -654,7 +685,7 @@ components:
       additionalProperties: false
       properties:
         eventId: { type: string, format: uuid }
-        slotStart: { type: string, example: "10:30" }
+        slotStart: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$", example: "10:30" }
         visitorName: { type: string, minLength: 3, maxLength: 60 }
     CreateEventRequest:
       type: object
@@ -662,12 +693,12 @@ components:
                  slotCapacity, counterCount, serviceSeconds]
       additionalProperties: false
       properties:
-        name: { type: string }
-        place: { type: string }
-        item: { type: string }
-        requirement: { type: string }
-        openTime: { type: string, example: "10:00" }
-        closeTime: { type: string, example: "18:00" }
+        name: { type: string, minLength: 3, maxLength: 70 }
+        place: { type: string, minLength: 1, maxLength: 50 }
+        item: { type: string, minLength: 1, maxLength: 50 }
+        requirement: { type: string, minLength: 1, maxLength: 80 }
+        openTime: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$", example: "10:00" }
+        closeTime: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$", example: "18:00" }
         slotMinutes: { type: integer, minimum: 10, maximum: 120 }
         slotCapacity: { type: integer, minimum: 1, maximum: 500 }
         counterCount: { type: integer, minimum: 1, maximum: 20 }
@@ -685,9 +716,19 @@ components:
       additionalProperties: false
       properties:
         eventId: { type: string, format: uuid }
-        counter: { type: integer, minimum: 1, maximum: 20 }
+        counter: { type: integer, minimum: 1, maximum: 20, description: "Nomor loket, 1 sampai `counterCount` event." }
         ktpChecked: { type: boolean }
 
+    RootEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                service: { type: string, example: antay-api }
+                version: { type: string }
     UserEnvelope:
       allOf:
         - $ref: "#/components/schemas/Envelope"

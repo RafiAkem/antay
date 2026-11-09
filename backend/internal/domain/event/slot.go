@@ -19,28 +19,16 @@ type SlotCount struct {
 // Counts adalah isi slot per event: peta event -> jam mulai slot -> hitungan.
 type Counts map[uuid.UUID]map[int32]SlotCount
 
-// OccupiedCounts menghitung redeemed sebagai terisi juga, sehingga sisa kuota
-// sama dengan yang dipakai saat memesan tiket. Dipakai halaman pengunjung.
+// OccupiedCounts menghitung redeemed sebagai terisi juga (booked = semua tiket
+// yang tidak cancelled), sehingga sisa kuota sama dengan yang dipakai saat
+// memesan tiket. Dipakai semua halaman supaya angkanya konsisten.
 func OccupiedCounts(rows []SlotBooking) Counts {
-	return group(rows, func(r SlotBooking) SlotCount {
-		return SlotCount{Booked: r.Booked + r.Redeemed, Redeemed: r.Redeemed}
-	})
-}
-
-// StatusCounts memakai angka mentah per status. Dipakai halaman petugas.
-func StatusCounts(rows []SlotBooking) Counts {
-	return group(rows, func(r SlotBooking) SlotCount {
-		return SlotCount{Booked: r.Booked, Redeemed: r.Redeemed}
-	})
-}
-
-func group(rows []SlotBooking, count func(SlotBooking) SlotCount) Counts {
 	out := make(Counts, len(rows))
 	for _, row := range rows {
 		if out[row.EventID] == nil {
 			out[row.EventID] = make(map[int32]SlotCount)
 		}
-		out[row.EventID][row.SlotStart] = count(row)
+		out[row.EventID][row.SlotStart] = SlotCount{Booked: row.Booked + row.Redeemed, Redeemed: row.Redeemed}
 	}
 	return out
 }

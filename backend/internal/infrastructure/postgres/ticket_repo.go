@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"errors"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -71,6 +73,11 @@ func (r *TicketRepo) Book(ctx context.Context, b ticket.Booking) (ticket.Ticket,
 }
 
 func (r *TicketRepo) GetByCode(ctx context.Context, code string) (ticket.WithEvent, error) {
+	// Kode dari URL bisa berisi byte yang tidak bisa disimpan Postgres; query-nya
+	// akan gagal jadi 500, padahal jawaban yang benar cuma "tidak ada".
+	if !utf8.ValidString(code) || strings.ContainsRune(code, 0) {
+		return ticket.WithEvent{}, ticket.ErrNotFound
+	}
 	row, err := r.q.GetTicketByCode(ctx, code)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
