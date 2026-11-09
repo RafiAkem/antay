@@ -340,6 +340,7 @@ Akun staff mendapat `403 FORBIDDEN`.
 ```
 
 `capacity` = jumlah slot x `slotCapacity`. `left` = `max(0, capacity - registered)`.
+`registered` tidak menghitung tiket yang dibatalkan.
 `noShow` = tiket `booked` yang slotnya sudah lewat. Semua slot event selalu muncul,
 termasuk yang belum punya tiket. `404 NOT_FOUND` bila event tidak ada.
 
