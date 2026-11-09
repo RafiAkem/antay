@@ -1,0 +1,99 @@
+name: Deploy
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-antay-api
+  cancel-in-progress: false
+
+env:
+  APP_DIR: /home/ubuntu/antay-api
+  PORT: 3011
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Vet and test
+        working-directory: backend
+        run: |
+          go vet ./...
+          go test ./...
+
+      - name: Build API
+        working-directory: backend
+        run: CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o ../antay-api ./cmd/api
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: antay-build
+          path: |
+            antay-api
+            frontend/dist
+          retention-days: 3
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: antay-build
+
+      - name: Install deploy key
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Upload artifacts
+        run: |
+          RSYNC="rsync -az -e \"ssh -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new\""
+          eval $RSYNC antay-api ubuntu@${{ secrets.VPS_HOST }}:$APP_DIR/bin/antay-api
+          eval $RSYNC --delete frontend/dist/ ubuntu@${{ secrets.VPS_HOST }}:$APP_DIR/dist/
+
+      - name: Restart and verify
+        run: |
+          VERSION="${GITHUB_SHA::7}"
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new \
+            ubuntu@${{ secrets.VPS_HOST }} "
+              chmod +x $APP_DIR/bin/antay-api
+              cd $APP_DIR
+              APP_VERSION=$VERSION pm2 restart antay-api --update-env >/dev/null 2>&1 ||
+                APP_VERSION=$VERSION pm2 start run.sh --name antay-api --cwd $APP_DIR --update-env >/dev/null
+              pm2 save --force >/dev/null
+              for i in \$(seq 1 10); do
+                curl -sf -o /tmp/ready.json http://127.0.0.1:$PORT/health/ready && break
+                sleep 2
+              done
+              cat /tmp/ready.json
+              echo
+              grep -q \"\\\"version\\\":\\\"$VERSION\\\"\" /tmp/ready.json
+              grep -q '\"database\":\"UP\"' /tmp/ready.json
+              curl -sf -o /dev/null http://127.0.0.1:$PORT/public/v1/events
+              test -f $APP_DIR/dist/index.html
+              test -n \"\$(ls $APP_DIR/dist/assets/*.js)\"
+              echo 'artifacts and API verified'
+            "
