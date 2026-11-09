@@ -20,6 +20,11 @@ INSERT INTO tickets (code, event_id, visitor_name, slot_start)
 VALUES (sqlc.arg(code), sqlc.arg(event_id), sqlc.arg(visitor_name), sqlc.arg(slot_start))
 RETURNING *;
 
+-- name: CancelTicket :execrows
+UPDATE tickets
+SET status = 'cancelled', updated_at = now()
+WHERE code = sqlc.arg(code) AND status = 'booked';
+
 -- name: GetTicketByCode :one
 SELECT t.id, t.code, t.event_id, t.visitor_name, t.slot_start, t.status,
        t.redeemed_at, t.redeemed_by, t.redeemed_counter, t.created_at,

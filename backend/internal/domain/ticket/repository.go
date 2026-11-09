@@ -8,14 +8,15 @@ import (
 )
 
 var (
-	ErrNotFound      = errors.New("tiket tidak ditemukan")
-	ErrSlotInvalid   = errors.New("slot tidak valid")
-	ErrSlotPast      = errors.New("slot sudah lewat")
-	ErrSlotFull      = errors.New("slot penuh")
-	ErrEventClosed   = errors.New("event sudah tutup hari ini")
-	ErrEventGone     = errors.New("event tidak lagi dibuka")
-	ErrDuplicateCode = errors.New("kode tiket bentrok")
-	ErrNotRedeemable = errors.New("tiket tidak bisa ditukar")
+	ErrNotFound       = errors.New("tiket tidak ditemukan")
+	ErrSlotInvalid    = errors.New("slot tidak valid")
+	ErrSlotPast       = errors.New("slot sudah lewat")
+	ErrSlotFull       = errors.New("slot penuh")
+	ErrEventClosed    = errors.New("event sudah tutup hari ini")
+	ErrEventGone      = errors.New("event tidak lagi dibuka")
+	ErrDuplicateCode  = errors.New("kode tiket bentrok")
+	ErrNotRedeemable  = errors.New("tiket tidak bisa ditukar")
+	ErrNotCancellable = errors.New("tiket tidak bisa dibatalkan")
 )
 
 type Booking struct {
@@ -42,4 +43,6 @@ type Repository interface {
 	ListWaiting(ctx context.Context, eventID uuid.UUID, slotStarts []int32) ([]Ticket, error)
 	// Redeem mengembalikan ErrNotRedeemable bila tiket tidak lagi berstatus booked.
 	Redeem(ctx context.Context, r Redemption) (Ticket, error)
+	// Cancel mengembalikan ErrNotCancellable bila tiket tidak lagi berstatus booked.
+	Cancel(ctx context.Context, code string) error
 }
