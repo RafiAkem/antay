@@ -1,0 +1,492 @@
+<title>Antay System Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one wide framed diagram (cards on a 6-column grid, SVG connectors drawn from their real positions), then the numbered path.
+   Light only by choice, same as Antay's own UI (frontend/src/styles/tokens.css). */
+:root {
+  --ground: #f6f8fe;
+  --surface: #ffffff;
+  --raised: #f1f4fb;
+  --border: #e3e8f2;
+  --control: #cdd5e1;
+  --ink: #1c1f26;
+  --muted: #5a6270;
+  --faint: #687180;
+  --accent: #1747e6;
+  --accent-ink: #0f2e99;
+  --tint: #e3eafe;
+  --dark: #1c1f26;
+  --dark-ink: #ffffff;
+  --dark-dim: #b9bfcb;
+  --sans: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+body { background: var(--ground); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.page { max-width: 1440px; margin: 0 auto; padding-block: 32px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px; }
+.frame { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; display: grid; gap: 22px; min-width: 0; }
+.top { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: flex-start; }
+.top > div:first-child { min-width: 0; flex: 1 1 520px; }
+.side { display: grid; gap: 12px; justify-items: end; flex: 0 0 auto; }
+.eyebrow { font-size: 11px; color: var(--faint); letter-spacing: .04em; }
+h1 { font-size: clamp(22px, 2.6vw, 30px); line-height: 1.15; font-weight: 600; margin: 6px 0 10px; text-wrap: balance; letter-spacing: -.01em; }
+.lede { color: var(--muted); max-width: 78ch; margin: 0; font-size: 13.5px; }
+.lang { display: inline-flex; border: 1px solid var(--control); border-radius: 6px; padding: 2px; gap: 2px; background: var(--surface); }
+.lang button { font: 600 12px var(--sans); color: var(--muted); background: transparent; border: 0; border-radius: 4px; padding: 5px 12px; cursor: pointer; letter-spacing: .04em; }
+.lang button[aria-pressed="true"] { background: var(--tint); color: var(--accent-ink); }
+.lang button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.legend { border: 1px dashed var(--control); border-radius: 8px; padding: 12px 14px; display: grid; gap: 7px; font-size: 11.5px; color: var(--muted); }
+.legend div { display: flex; align-items: center; gap: 10px; }
+.legend svg { flex: 0 0 auto; }
+.sw { width: 26px; height: 14px; border-radius: 3px; border: 1px solid var(--border); background: var(--surface); flex: 0 0 auto; }
+.sw.ext { border-style: dashed; border-color: var(--control); background: var(--raised); }
+.hint { display: none; font-size: 12px; color: var(--faint); margin: 0; }
+@media (max-width: 1400px) { .hint { display: block; } }
+.scroll { overflow-x: auto; min-width: 0; }
+.canvas { position: relative; width: max-content; padding: 34px 6px 6px; }
+.grid { display: grid; grid-template-columns: 168px 84px 176px 72px 168px 48px 184px 40px 176px 44px 150px; row-gap: 14px; position: relative; z-index: 1; }
+svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; overflow: visible; }
+.node { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 11px 12px 12px; align-self: center; display: grid; gap: 4px; min-width: 0; }
+.node.ext { border-style: dashed; border-color: var(--control); background: var(--raised); }
+.node .k { font-size: 10.5px; color: var(--faint); letter-spacing: .04em; }
+.node .t { font-size: 14px; font-weight: 600; line-height: 1.25; }
+.node code { font-family: var(--mono); font-size: 10.5px; color: var(--accent-ink); overflow-wrap: anywhere; }
+.node ul { margin: 4px 0 0; padding-left: 14px; font-size: 11.5px; color: var(--muted); display: grid; gap: 2px; }
+.node.ext ul { list-style: none; padding-left: 0; }
+.node.dark { background: var(--dark); border-color: var(--dark); color: var(--dark-ink); align-self: stretch; align-content: start; padding: 16px 14px; }
+.node.dark .k, .node.dark ul { color: var(--dark-dim); }
+.node.dark code { color: #a9bcff; }
+.node.dark .t { font-size: 18px; }
+.node.dark ul { gap: 8px; margin-top: 10px; font-size: 12px; }
+.node.dark .foot { margin-top: auto; font-family: var(--mono); font-size: 10.5px; color: var(--dark-dim); }
+.node.db ul { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; }
+.badge-fill { fill: var(--accent); }
+.badge-text { fill: #fff; font: 600 10px var(--sans); }
+.wire-label { font: 500 10px var(--mono); fill: var(--accent-ink); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.region-label { font: 500 11px var(--sans); fill: var(--faint); }
+.steps { list-style: none; margin: 0; padding: 14px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.steps li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; font-size: 12px; color: var(--muted); }
+.steps b { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; display: grid; place-items: center; font-weight: 600; }
+.steps code { font-family: var(--mono); font-size: 11px; color: var(--accent-ink); }
+@media (max-width: 1100px) { .steps { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .steps { grid-template-columns: minmax(0, 1fr); } .frame { padding: 16px; } .side { justify-items: start; } }
+.note { font-size: 11.5px; color: var(--faint); margin: 0; max-width: 100ch; }
+</style>
+
+<!-- Every element with data-id swaps its HTML for the Indonesian text; English stays in the markup. -->
+<div class="page">
+  <section class="frame">
+    <div class="top">
+      <div>
+        <div class="eyebrow">Antay · Bandung Build Challenge 2026 · Summarecon Mall Bandung</div>
+        <h1 data-id="Satu aplikasi web untuk pengunjung, petugas loket, dan admin mal, satu API Go, dan satu database">One web app for visitors, counter staff and mall admins, one Go API, and one database</h1>
+        <p class="lede" data-id="Pengunjung memesan slot jam datang di ponsel dan mendapat kode pendek. Petugas menukar kode itu di loket, dan papan di TV menampilkan antrean serta perkiraan waktu tunggu. Semua layar memakai build React yang sama di balik nginx, semua permintaan masuk ke satu proses Go, dan semua tiket serta event tersimpan di PostgreSQL.">Visitors book an arrival slot on their phone and get a short code. Staff redeem that code at the counter, and the TV board shows the queue and the expected wait. Every screen is the same React build behind nginx, every request goes to one Go process, and every ticket and event lives in PostgreSQL.</p>
+      </div>
+      <div class="side">
+        <div class="lang" role="group" aria-label="Language / Bahasa">
+          <button type="button" id="lang-en" data-lang="en" aria-pressed="true">EN</button>
+          <button type="button" id="lang-id" data-lang="id" aria-pressed="false">ID</button>
+        </div>
+        <div class="legend">
+          <div><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="#1747e6" stroke-width="2"/></svg><span data-id="Jalur utama, berurutan">The main path, in order</span></div>
+          <div><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="#9aa3b2" stroke-width="1.5"/></svg><span data-id="Lalu lintas internal">Our own traffic</span></div>
+          <div><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="#9aa3b2" stroke-width="1.5" stroke-dasharray="4 3"/></svg><span data-id="Layanan luar, atau belum dibuat">Outside service, or not built yet</span></div>
+          <div><span class="sw"></span><span data-id="Bagian yang kami jalankan">A part we run</span></div>
+          <div><span class="sw ext"></span><span data-id="Layanan luar, atau rencana">Outside, or planned</span></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="hint" data-id="Geser ke samping untuk melihat seluruh diagram.">Scroll sideways to see the whole diagram.</p>
+    <div class="scroll">
+      <div class="canvas" id="canvas">
+        <svg class="wires" id="wires" aria-hidden="true"></svg>
+        <div class="grid">
+          <!-- column 1: who uses it -->
+          <div class="node" id="visitor" style="grid-column:1;grid-row:1 / span 2">
+            <div class="k" data-id="Ponsel · pengunjung">Phone · visitor</div>
+            <div class="t" data-id="Ponsel pengunjung">Visitor's phone</div>
+            <code>/events · /events/:eventId</code>
+            <ul>
+              <li data-id="Tanpa akun">No account needed</li>
+              <li data-id="Memilih event hari ini dan slot jam datang">Picks today's event and an arrival slot</li>
+              <li data-id="Mendapat kode dan QR untuk ditunjukkan di loket">Gets a code and QR to show at the counter</li>
+              <li data-id="Tiket diperbarui tiap 30 detik">Ticket refreshes every 30 s</li>
+            </ul>
+          </div>
+          <div class="node" id="board" style="grid-column:1;grid-row:3">
+            <div class="k" data-id="Layar TV">TV screen</div>
+            <div class="t" data-id="Papan antrean">Queue board</div>
+            <code>/board</code>
+            <ul>
+              <li data-id="Antrean, perkiraan tunggu, slot berjalan dan berikutnya">Queue, expected wait, current and next slot</li>
+              <li data-id="Diperbarui tiap 10 detik">Refreshes every 10 s</li>
+            </ul>
+          </div>
+          <div class="node" id="counter" style="grid-column:1;grid-row:4">
+            <div class="k" data-id="Petugas loket">Counter staff</div>
+            <div class="t">Loket</div>
+            <code>/counter</code>
+            <ul>
+              <li data-id="Cek kode, cocokkan KTP, serahkan item">Check code, match the KTP, hand over the item</li>
+              <li data-id="Koreksi jumlah antrean">Correct the waiting count</li>
+            </ul>
+          </div>
+          <div class="node" id="admin" style="grid-column:1;grid-row:5">
+            <div class="k" data-id="Admin mal">Mall admin</div>
+            <div class="t" data-id="Dasbor">Dashboard</div>
+            <code>/dashboard</code>
+            <ul>
+              <li data-id="Statistik per slot, ringkasan semua event">Stats per slot, summary of all events</li>
+              <li data-id="Buat event baru">Create a new event</li>
+            </ul>
+          </div>
+
+          <!-- column 2: front door -->
+          <div class="node" id="codes" style="grid-column:3;grid-row:1">
+            <div class="k" data-id="Tempat data disimpan">Where data rests</div>
+            <div class="t" data-id="Kode di ponsel">Codes on the phone</div>
+            <code data-id="penyimpanan browser">browser storage</code>
+            <ul>
+              <li data-id="Hanya kode tiket yang disimpan">Only ticket codes are kept</li>
+              <li data-id="Detail selalu diambil dari server">Details always come from the server</li>
+            </ul>
+          </div>
+          <div class="node" id="nginx" style="grid-column:3;grid-row:2 / span 3">
+            <div class="k" data-id="Pintu depan">Front door</div>
+            <div class="t">nginx</div>
+            <code>antay.rafiakem.tech</code>
+            <ul>
+              <li data-id="Path halaman mendapat build React">Page paths get the React build</li>
+              <li data-id="<code>/public</code>, <code>/operational</code>, <code>/analytics</code>, <code>/csrf</code>, dan <code>/health</code> diteruskan ke API"><code>/public</code>, <code>/operational</code>, <code>/analytics</code>, <code>/csrf</code> and <code>/health</code> go to the API</li>
+              <li data-id="Satu origin, jadi cookie tidak perlu CORS">One origin, so cookies need no CORS</li>
+              <li data-id="VPS di Jakarta">VPS in Jakarta</li>
+            </ul>
+          </div>
+          <div class="node" id="react" style="grid-column:3;grid-row:5">
+            <div class="k" data-id="Satu build untuk semua">One build for everyone</div>
+            <div class="t" data-id="Aplikasi web React">React web app</div>
+            <code>React 19 · Vite · Tailwind 4</code>
+            <ul>
+              <li data-id="7 halaman, teks bahasa Indonesia">7 pages, Indonesian copy</li>
+              <li data-id="Satu pemanggil fetch: <code>lib/api.ts</code>">One fetch caller: <code>lib/api.ts</code></li>
+            </ul>
+          </div>
+          <div class="node ext" id="github" style="grid-column:3;grid-row:6">
+            <div class="k" data-id="Layanan luar">Outside service</div>
+            <div class="t">GitHub Actions</div>
+            <code data-id="saat push ke main">on push to main</code>
+            <ul><li data-id="Build dan kirim ke VPS">Builds and ships to the VPS</li></ul>
+          </div>
+
+          <!-- column 3: the API -->
+          <div class="node dark" id="api" style="grid-column:5;grid-row:1 / span 6">
+            <div class="k" data-id="Satu proses · pm2">One process · pm2</div>
+            <div class="t" data-id="API Antay">The Antay API</div>
+            <code>Go 1.27 · net/http · :8080</code>
+            <ul>
+              <li data-id="17 rute dalam tiga grup: public, operational, analytics">17 routes in three groups: public, operational, analytics</li>
+              <li data-id="Pesan dan batal tiket dibatasi 30 per 10 menit per IP, login 10">Booking and cancelling are capped at 30 per 10 min per IP, logins at 10</li>
+              <li data-id="Lapisan: interfaces → application → domain ← infrastructure">Layers: interfaces → application → domain ← infrastructure</li>
+              <li data-id="Login petugas memakai JWT (RS256) berumur pendek di cookie HttpOnly, SameSite=Strict">Staff sign-in is a short-lived JWT (RS256) in an HttpOnly, SameSite=Strict cookie</li>
+              <li data-id="Token CSRF double submit di setiap penulisan">CSRF double-submit token on every write</li>
+              <li data-id="Menjalankan migrasinya sendiri saat start">Runs its own migrations on start</li>
+              <li data-id="Error domain dipetakan ke pesan bahasa Indonesia yang jelas">Domain errors map to plain Indonesian messages</li>
+            </ul>
+            <div class="foot" data-id="Spesifikasi: openapi.yaml (3.1)">Spec: openapi.yaml (3.1)</div>
+          </div>
+
+          <!-- column 4: use cases -->
+          <div class="node" id="catalog" style="grid-column:7;grid-row:1">
+            <div class="k" data-id="Pengunjung">Visitors</div>
+            <div class="t">Catalog</div>
+            <code>GET /public/v1/events</code>
+            <ul>
+              <li data-id="Event yang buka dan slot kosong">Open events and free slots</li>
+              <li data-id="Data papan untuk TV">Board data for the TV</li>
+            </ul>
+          </div>
+          <div class="node" id="booking" style="grid-column:7;grid-row:2">
+            <div class="k" data-id="Pengunjung">Visitors</div>
+            <div class="t">Booking</div>
+            <code>POST /public/v1/tickets</code>
+            <ul>
+              <li data-id="Memesan slot, mengembalikan kode">Books a slot, returns the code</li>
+              <li data-id="Melihat tiket dari kodenya">Look up a ticket by code</li>
+              <li data-id="Membatalkan tiket yang belum ditukar">Cancel a ticket not yet redeemed</li>
+            </ul>
+          </div>
+          <div class="node" id="identity" style="grid-column:7;grid-row:3">
+            <div class="k" data-id="Petugas">Staff</div>
+            <div class="t">Identity</div>
+            <code>/operational/v1/auth</code>
+            <ul><li data-id="Masuk, keluar, pengguna saat ini">Log in, log out, current user</li></ul>
+          </div>
+          <div class="node" id="counterUc" style="grid-column:7;grid-row:4">
+            <div class="k" data-id="Petugas">Staff</div>
+            <div class="t">Counter</div>
+            <code>/operational/v1/tickets/{code}</code>
+            <ul>
+              <li data-id="Cek dan tukar tiket">Look up and redeem a ticket</li>
+              <li data-id="Daftar tunggu, koreksi antrean">Waiting list, queue correction</li>
+            </ul>
+          </div>
+          <div class="node" id="scheduling" style="grid-column:7;grid-row:5">
+            <div class="k">Admin</div>
+            <div class="t">Scheduling</div>
+            <code>POST /operational/v1/events</code>
+            <ul><li data-id="Membuat event beserta slotnya">Create an event and its slots</li></ul>
+          </div>
+          <div class="node" id="reporting" style="grid-column:7;grid-row:6">
+            <div class="k">Admin</div>
+            <div class="t">Reporting</div>
+            <code>/analytics/v1</code>
+            <ul>
+              <li data-id="Ringkasan per slot dan semua event">Per-slot summary and overview</li>
+              <li data-id="Read model sendiri untuk total">Its own read model for totals</li>
+            </ul>
+          </div>
+
+          <!-- column 5: domain rules -->
+          <div class="node" id="slots" style="grid-column:9;grid-row:1">
+            <div class="k" data-id="Aturan di domain">Rule in the domain</div>
+            <div class="t" data-id="Slot dan kuota">Slots and quota</div>
+            <code data-id="menit sejak tengah malam">minutes since midnight</code>
+            <ul>
+              <li data-id="Setiap slot punya kuota sendiri">Each slot has its own quota</li>
+              <li data-id="API mengirim jam sebagai HH:MM">The API sends times as HH:MM</li>
+            </ul>
+          </div>
+          <div class="node" id="code" style="grid-column:9;grid-row:2">
+            <div class="k" data-id="Aturan di domain">Rule in the domain</div>
+            <div class="t" data-id="Kode tiket">Ticket code</div>
+            <code data-id="contoh SU-7KQM">e.g. SU-7KQM</code>
+            <ul>
+              <li data-id="2 huruf dari nama event, lalu 4 karakter">2 letters from the event name, then 4 characters</li>
+              <li data-id="Tanpa 0, O, 1, I, atau L">No 0, O, 1, I or L</li>
+              <li data-id="Huruf kecil atau tanpa tanda hubung tetap cocok">Lowercase or a missing dash still matches</li>
+            </ul>
+          </div>
+          <div class="node" id="roles" style="grid-column:9;grid-row:3">
+            <div class="k" data-id="Aturan di domain">Rule in the domain</div>
+            <div class="t" data-id="Peran">Roles</div>
+            <code>staff · admin</code>
+            <ul><li data-id="Admin bisa melakukan semua yang bisa dilakukan staff, ditambah dasbor">Admin can do everything staff can, plus the dashboard</li></ul>
+          </div>
+          <div class="node" id="queue" style="grid-column:9;grid-row:4">
+            <div class="k" data-id="Aturan di domain">Rule in the domain</div>
+            <div class="t" data-id="Antrean dan waktu tunggu">Queue and wait</div>
+            <code data-id="antre × detik layanan ÷ loket">waiting × service s ÷ counters</code>
+            <ul>
+              <li data-id="Dibulatkan ke atas per menit">Rounded up to whole minutes</li>
+              <li data-id="Lebih dari 15 menit ditandai panjang">Over 15 min is flagged long</li>
+              <li data-id="Menunjukkan berapa loket yang dibutuhkan">Shows how many counters would fix it</li>
+            </ul>
+          </div>
+
+          <!-- column 6: not built yet -->
+          <div class="node ext" id="qrscan" style="grid-column:11;grid-row:2">
+            <div class="k" data-id="Belum dibuat">Not built yet</div>
+            <div class="t" data-id="Scan QR dengan kamera">Camera QR scan</div>
+            <ul><li data-id="Untuk sekarang petugas mengetik kode">Staff type the code for now</li></ul>
+          </div>
+          <div class="node ext" id="camera" style="grid-column:11;grid-row:4">
+            <div class="k" data-id="Belum dibuat">Not built yet</div>
+            <div class="t" data-id="Hitung antrean dengan kamera">Camera queue count</div>
+            <ul>
+              <li data-id="Hitung orang (COCO-SSD) dari prototipe">People count (COCO-SSD) from the prototype</li>
+              <li data-id="Untuk sekarang dihitung manual">Counted by hand for now</li>
+            </ul>
+          </div>
+          <div class="node ext" id="whatsapp" style="grid-column:11;grid-row:6">
+            <div class="k" data-id="Belum dibuat">Not built yet</div>
+            <div class="t" data-id="Asisten WhatsApp">WhatsApp assistant</div>
+            <ul><li data-id="Pesan dan cek tiket lewat chat">Book and check tickets by chat</li></ul>
+          </div>
+
+          <!-- database -->
+          <div class="node db" id="db" style="grid-column:5 / span 5;grid-row:7;margin-top:30px">
+            <div class="k" data-id="Tempat data disimpan">Where data rests</div>
+            <div class="t" data-id="PostgreSQL 17, satu buku catatan">PostgreSQL 17, the one book</div>
+            <code>users · events · tickets</code>
+            <ul>
+              <li data-id="Tempat terakhir di sebuah slot dijaga dengan <code>SELECT … FOR UPDATE</code> pada baris event, jadi dua orang tidak bisa sama-sama mengambilnya">The last place in a slot is guarded by <code>SELECT … FOR UPDATE</code> on the event row, so two people can't both take it</li>
+              <li data-id="Query SQL, kode Go dibuat oleh sqlc">SQL queries, Go code generated by sqlc</li>
+              <li data-id="Semua key memakai UUID">UUID keys everywhere</li>
+              <li data-id="Diisi contoh event dan dua akun demo">Seeded with example events and two demo accounts</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ol class="steps" aria-label="The main path">
+      <li><b>1</b><span data-id="Pengunjung memilih slot jam datang. Ponsel mengirim <code>POST /public/v1/tickets</code>.">A visitor picks an arrival slot. The phone sends <code>POST /public/v1/tickets</code>.</span></li>
+      <li><b>2</b><span data-id="nginx meneruskan path API ke proses Go. Path lain mendapat build React.">nginx passes the API paths to the Go process. Every other path gets the React build.</span></li>
+      <li><b>3</b><span data-id="Booking mengecek nama (3 sampai 60 karakter) dan memastikan slotnya ada.">Booking checks the name (3 to 60 characters) and that the slot exists.</span></li>
+      <li><b>4</b><span data-id="Satu transaksi mengunci baris event, mengecek kuota slot, lalu menyimpan tiket. Kode yang bentrok dicoba ulang, paling banyak 5 kali.">One transaction locks the event row, checks the slot quota and saves the ticket. A clashing code is retried, up to 5 times.</span></li>
+      <li><b>5</b><span data-id="Ponsel hanya menyimpan kode dan menampilkannya bersama QR. Detailnya diambil ulang setiap kali.">The phone keeps only the code and shows it with a QR. Details are fetched again each time.</span></li>
+      <li><b>6</b><span data-id="Di loket, petugas memasukkan kode, mencocokkan KTP, lalu menukar tiket. Tiket ditandai terlalu awal, tepat waktu, atau terlambat, dan 15 menit sebelum slot dihitung tepat waktu.">At the counter, staff enter the code, match the KTP and redeem. The ticket is marked early, on time or late, and the 15 minutes before a slot count as on time.</span></li>
+      <li><b>7</b><span data-id="Papan diperbarui tiap 10 detik dan menampilkan waktu tunggu dari jumlah antrean yang dijaga petugas.">The board refreshes every 10 s and shows the wait from the queue count that staff keep up to date.</span></li>
+    </ol>
+    <p class="note" data-id="Dibaca dari branch dev (5131ba0) pada 9 Nov 2026. Bagian nginx dan GitHub Actions menunjukkan rencana setup produksi. Pada 9 Nov situs live masih menampilkan prototipe satu berkas. Semua event, nama, dan angka di aplikasi adalah data contoh, bukan layanan resmi Summarecon.">Read from the dev branch (5131ba0) on 9 Nov 2026. The nginx and GitHub Actions parts show the intended production setup. On 9 Nov the live site still served the earlier single-file prototype. All events, names and numbers in the app are example data, not an official Summarecon service.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  const NS = 'http://www.w3.org/2000/svg';
+  const canvas = document.getElementById('canvas');
+  const svg = document.getElementById('wires');
+  let lang = 'en';
+  const STYLE = {
+    main: { stroke: '#1747e6', width: 2, dash: '' },
+    own: { stroke: '#9aa3b2', width: 1.5, dash: '' },
+    ext: { stroke: '#9aa3b2', width: 1.5, dash: '4 3' },
+  };
+  // [from, to, options]. as/bs = side (l, r, t, b); fit = slide the target point to stay level with the source.
+  const EDGES = [
+    ['visitor', 'codes', { as: 'r', af: 0.22, bs: 'l', k: 'main', n: 5, label: ['keeps code', 'simpan kode'] }],
+    ['visitor', 'nginx', { as: 'r', af: 0.78, bs: 'l', fit: true, k: 'main', n: 1, label: ['POST /tickets', 'POST /tickets'] }],
+    ['board', 'nginx', { as: 'r', bs: 'l', fit: true, k: 'main', n: 7, label: ['every 10 s', 'tiap 10 detik'] }],
+    ['counter', 'nginx', { as: 'r', bs: 'l', fit: true, k: 'main', n: 6, label: ['redeem', 'tukar'] }],
+    ['admin', 'nginx', { as: 'r', bs: 'l', fit: true, k: 'own', label: ['new event', 'event baru'] }],
+    ['nginx', 'api', { as: 'r', bs: 'l', fit: true, k: 'main', n: 2, label: ['API paths', 'path API'] }],
+    ['nginx', 'react', { as: 'b', bs: 't', fit: true, k: 'own', label: ['page paths', 'path halaman'] }],
+    ['github', 'react', { as: 't', bs: 'b', fit: true, k: 'ext' }],
+    ['api', 'catalog', { as: 'r', bs: 'l', fitSource: true, k: 'own' }],
+    ['api', 'booking', { as: 'r', bs: 'l', fitSource: true, k: 'main', n: 3 }],
+    ['api', 'identity', { as: 'r', bs: 'l', fitSource: true, k: 'own' }],
+    ['api', 'counterUc', { as: 'r', bs: 'l', fitSource: true, k: 'own' }],
+    ['api', 'scheduling', { as: 'r', bs: 'l', fitSource: true, k: 'own' }],
+    ['api', 'reporting', { as: 'r', bs: 'l', fitSource: true, k: 'own' }],
+    ['catalog', 'slots', { as: 'r', bs: 'l', fit: true, k: 'own' }],
+    ['booking', 'code', { as: 'r', bs: 'l', fit: true, k: 'own' }],
+    ['identity', 'roles', { as: 'r', bs: 'l', fit: true, k: 'own' }],
+    ['counterUc', 'queue', { as: 'r', bs: 'l', fit: true, k: 'own' }],
+    ['code', 'qrscan', { as: 'r', bs: 'l', fit: true, k: 'ext' }],
+    ['queue', 'camera', { as: 'r', bs: 'l', fit: true, k: 'ext' }],
+    ['api', 'db', { as: 'b', bs: 't', fit: true, k: 'main', n: 4, label: ['one transaction', 'satu transaksi'] }],
+  ];
+  const REGION = ['api', 'catalog', 'booking', 'identity', 'counterUc', 'scheduling', 'reporting', 'slots', 'code', 'roles', 'queue', 'db'];
+  const REGION_LABEL = ['On the server · one Go process and one PostgreSQL database', 'Di server · satu proses Go dan satu database PostgreSQL'];
+
+  function box(id) {
+    const c = canvas.getBoundingClientRect();
+    const r = document.getElementById(id).getBoundingClientRect();
+    return { l: r.left - c.left, t: r.top - c.top, r: r.right - c.left, b: r.bottom - c.top, w: r.width, h: r.height };
+  }
+  function point(b, side, f) {
+    f = f == null ? 0.5 : f;
+    if (side === 'r') return [b.r, b.t + b.h * f];
+    if (side === 'l') return [b.l, b.t + b.h * f];
+    if (side === 't') return [b.l + b.w * f, b.t];
+    return [b.l + b.w * f, b.b];
+  }
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  function el(name, attrs, parent) {
+    const e = document.createElementNS(NS, name);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    (parent || svg).appendChild(e);
+    return e;
+  }
+  function rounded(pts, rad) {
+    let d = 'M' + pts[0][0] + ' ' + pts[0][1];
+    for (let i = 1; i < pts.length - 1; i++) {
+      const [px, py] = pts[i - 1], [x, y] = pts[i], [nx, ny] = pts[i + 1];
+      const r1 = Math.min(rad, Math.hypot(x - px, y - py) / 2, Math.hypot(nx - x, ny - y) / 2);
+      const ax = x - Math.sign(x - px) * r1, ay = y - Math.sign(y - py) * r1;
+      const bx = x + Math.sign(nx - x) * r1, by = y + Math.sign(ny - y) * r1;
+      d += ' L' + ax + ' ' + ay + ' Q' + x + ' ' + y + ' ' + bx + ' ' + by;
+    }
+    const last = pts[pts.length - 1];
+    return d + ' L' + last[0] + ' ' + last[1];
+  }
+
+  function draw() {
+    const li = lang === 'id' ? 1 : 0;
+    svg.innerHTML = '';
+    const defs = el('defs', {});
+    for (const k in STYLE) {
+      const m = el('marker', { id: 'arrow-' + k, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, markerUnits: 'userSpaceOnUse', orient: 'auto-start-reverse' }, defs);
+      el('path', { d: 'M0 1 L9 5 L0 9 z', fill: STYLE[k].stroke }, m);
+    }
+
+    // Dashed region around the server side.
+    const bs = REGION.map(box);
+    const R = { l: Math.min(...bs.map(b => b.l)) - 14, t: Math.min(...bs.map(b => b.t)) - 26, r: Math.max(...bs.map(b => b.r)) + 14, b: Math.max(...bs.map(b => b.b)) + 14 };
+    el('rect', { x: R.l, y: R.t, width: R.r - R.l, height: R.b - R.t, rx: 10, fill: 'none', stroke: '#cdd5e1', 'stroke-dasharray': '5 4' });
+    el('text', { x: R.l + 12, y: R.t + 16, class: 'region-label' }).textContent = REGION_LABEL[li];
+
+    const badges = [];
+    for (const [from, to, o] of EDGES) {
+      const A = box(from), B = box(to);
+      let a = point(A, o.as, o.af), b = point(B, o.bs, o.bf);
+      const horizontal = o.as === 'l' || o.as === 'r';
+      if (o.fit) {
+        if (horizontal) b[1] = clamp(a[1], B.t + 16, B.b - 16); else b[0] = clamp(a[0], B.l + 16, B.r - 16);
+      }
+      if (o.fitSource) {
+        if (horizontal) a[1] = clamp(b[1], A.t + 16, A.b - 16); else a[0] = clamp(b[0], A.l + 16, A.r - 16);
+      }
+      let pts;
+      if (horizontal) {
+        if (Math.abs(a[1] - b[1]) < 1) pts = [a, b];
+        else { const mx = a[0] + (b[0] - a[0]) * 0.5; pts = [a, [mx, a[1]], [mx, b[1]], b]; }
+      } else {
+        if (Math.abs(a[0] - b[0]) < 1) pts = [a, b];
+        else { const my = a[1] + (b[1] - a[1]) * 0.5; pts = [a, [a[0], my], [b[0], my], b]; }
+      }
+      const s = STYLE[o.k];
+      el('path', { d: rounded(pts, 7), fill: 'none', stroke: s.stroke, 'stroke-width': s.width, 'stroke-dasharray': s.dash, 'marker-end': 'url(#arrow-' + o.k + ')', 'stroke-linejoin': 'round' });
+
+      // Badge and label sit on the longest segment.
+      let best = 0, seg = [pts[0], pts[1]];
+      for (let i = 1; i < pts.length; i++) {
+        const len = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+        if (len > best) { best = len; seg = [pts[i - 1], pts[i]]; }
+      }
+      const mx = (seg[0][0] + seg[1][0]) / 2, my = (seg[0][1] + seg[1][1]) / 2;
+      const flat = Math.abs(seg[0][1] - seg[1][1]) < 1;
+      if (o.label) {
+        const t = el('text', flat ? { x: mx, y: my - 13, 'text-anchor': 'middle', class: 'wire-label' } : { x: mx + 14, y: my + 4, class: 'wire-label' });
+        t.textContent = o.label[li];
+        if (o.k !== 'main') t.style.fill = '#5a6270';
+      }
+      if (o.n) badges.push([mx, my, o.n]);
+    }
+    for (const [x, y, n] of badges) {
+      el('circle', { cx: x, cy: y, r: 9, class: 'badge-fill' });
+      el('text', { x: x, y: y + 3.5, 'text-anchor': 'middle', class: 'badge-text' }).textContent = n;
+    }
+  }
+
+  function setLang(next) {
+    lang = next === 'id' ? 'id' : 'en';
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-id]').forEach(node => {
+      if (node.dataset.en == null) node.dataset.en = node.innerHTML;
+      node.innerHTML = lang === 'id' ? node.dataset.id : node.dataset.en;
+    });
+    document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+    try { localStorage.setItem('antay-map-lang', lang); } catch (e) {}
+    draw();
+  }
+  document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => {
+    setLang(b.dataset.lang);
+    if (location.hash.slice(1) !== lang) location.hash = lang;
+  }));
+  window.addEventListener('hashchange', () => {
+    const h = location.hash.slice(1);
+    if ((h === 'en' || h === 'id') && h !== lang) setLang(h);
+  });
+
+  let saved = null;
+  try { saved = localStorage.getItem('antay-map-lang'); } catch (e) {}
+  const fromHash = location.hash.slice(1);
+  setLang(fromHash === 'en' || fromHash === 'id' ? fromHash : saved || 'en');
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+  if (window.ResizeObserver) new ResizeObserver(draw).observe(canvas);
+})();
+</script>
