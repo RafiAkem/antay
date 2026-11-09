@@ -79,7 +79,7 @@ tr.fkrow td { background: var(--tint-50); }
       <div>
         <div class="eyebrow">Antay · PostgreSQL 17</div>
         <h1 data-id="Empat tabel, satu database">Four tables, one database</h1>
-        <p class="lede" data-id="Ini skema dari <code>backend/internal/infrastructure/postgres/migrations/0001_init.sql</code>. API membuatnya sendiri saat start (<code>AUTO_MIGRATE=true</code>), jadi server produksi hanya butuh database PostgreSQL kosong dan <code>DATABASE_URL</code> yang mengarah ke sana.">This is the schema in <code>backend/internal/infrastructure/postgres/migrations/0001_init.sql</code>. The API creates it on start (<code>AUTO_MIGRATE=true</code>), so the production server only needs an empty PostgreSQL database and a <code>DATABASE_URL</code> pointing at it.</p>
+        <p class="lede" data-id="Ini skema dari migrasi di <code>backend/internal/infrastructure/postgres/migrations/</code>. API menjalankannya sendiri saat start (<code>AUTO_MIGRATE=true</code>), jadi server produksi hanya butuh database PostgreSQL kosong dan <code>DATABASE_URL</code> yang mengarah ke sana.">This is the schema from the migrations in <code>backend/internal/infrastructure/postgres/migrations/</code>. The API applies them on start (<code>AUTO_MIGRATE=true</code>), so the production server only needs an empty PostgreSQL database and a <code>DATABASE_URL</code> pointing at it.</p>
       </div>
       <div class="side">
         <div class="lang" role="group" aria-label="Language / Bahasa">
@@ -121,7 +121,7 @@ tr.fkrow td { background: var(--tint-50); }
               <tr><td class="key"><span class="tag pk">PK</span></td><td class="col">version</td><td class="ty">text</td></tr>
               <tr><td class="key"></td><td class="col">applied_at</td><td class="ty">timestamptz</td></tr>
             </table>
-            <div class="foot" data-id="Tanpa relasi. Satu baris per migrasi yang sudah jalan.">No relations. One row per migration already applied.</div>
+            <div class="foot" data-id="Tanpa relasi. Dibuat oleh proses migrasi API, satu baris per migrasi yang sudah jalan.">No relations. The API's migration runner creates it and adds one row per migration applied.</div>
           </div>
 
           <div class="ent" id="events" style="grid-column:1;grid-row:2">
