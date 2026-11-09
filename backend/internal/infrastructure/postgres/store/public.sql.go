@@ -12,6 +12,20 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const cancelTicket = `-- name: CancelTicket :execrows
+UPDATE tickets
+SET status = 'cancelled', updated_at = now()
+WHERE code = $1 AND status = 'booked'
+`
+
+func (q *Queries) CancelTicket(ctx context.Context, code string) (int64, error) {
+	result, err := q.db.Exec(ctx, cancelTicket, code)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const countSlotBookings = `-- name: CountSlotBookings :one
 SELECT count(*)::int AS booked FROM tickets
 WHERE event_id = $1

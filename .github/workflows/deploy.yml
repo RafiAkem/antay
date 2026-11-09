@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [dev]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -11,6 +11,7 @@ concurrency:
 
 env:
   APP_DIR: /home/ubuntu/antay-api
+  WEB_ROOT: /var/www/antay
   PORT: 3011
 
 jobs:
@@ -72,7 +73,12 @@ jobs:
         run: |
           RSYNC="rsync -az -e \"ssh -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new\""
           eval $RSYNC antay-api ubuntu@${{ secrets.VPS_HOST }}:$APP_DIR/bin/antay-api
-          eval $RSYNC --delete frontend/dist/ ubuntu@${{ secrets.VPS_HOST }}:$APP_DIR/dist/
+          # nginx (www-data) tidak bisa menembus /home/ubuntu, jadi aset statis ke /var/www
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new \
+            ubuntu@${{ secrets.VPS_HOST }} "sudo -n install -d -o ubuntu -o ubuntu -m 755 $WEB_ROOT"
+          eval $RSYNC --delete frontend/dist/ ubuntu@${{ secrets.VPS_HOST }}:$WEB_ROOT/
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new \
+            ubuntu@${{ secrets.VPS_HOST }} "sudo -n chown -R ubuntu:ubuntu $WEB_ROOT && sudo -n chmod -R a+rX $WEB_ROOT"
 
       - name: Restart and verify
         run: |
@@ -93,7 +99,7 @@ jobs:
               grep -q \"\\\"version\\\":\\\"$VERSION\\\"\" /tmp/ready.json
               grep -q '\"database\":\"UP\"' /tmp/ready.json
               curl -sf -o /dev/null http://127.0.0.1:$PORT/public/v1/events
-              test -f $APP_DIR/dist/index.html
-              test -n \"\$(ls $APP_DIR/dist/assets/*.js)\"
+              test -f $WEB_ROOT/index.html
+              test -n \"\$(ls $WEB_ROOT/assets/*.js)\"
               echo 'artifacts and API verified'
             "

@@ -103,6 +103,17 @@ func (r *TicketRepo) ListWaiting(ctx context.Context, eventID uuid.UUID, slotSta
 	return out, nil
 }
 
+func (r *TicketRepo) Cancel(ctx context.Context, code string) error {
+	n, err := r.q.CancelTicket(ctx, code)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ticket.ErrNotCancellable
+	}
+	return nil
+}
+
 func (r *TicketRepo) Redeem(ctx context.Context, in ticket.Redemption) (ticket.Ticket, error) {
 	counter := in.Counter
 	row, err := r.q.RedeemTicket(ctx, store.RedeemTicketParams{

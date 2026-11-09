@@ -186,6 +186,35 @@ paths:
           $ref: "#/components/responses/Error404"
         "422":
           $ref: "#/components/responses/Error422"
+        "429":
+          $ref: "#/components/responses/Error429"
+
+  /public/v1/tickets/{code}/cancellations:
+    post:
+      tags: [public]
+      summary: Batalkan tiket yang belum ditukar
+      description: >
+        Pengunjung tidak punya akun, jadi memegang kode berarti pemilik tiket.
+        Tempat di slot langsung kembali tersedia. Tanpa body.
+      operationId: cancelTicket
+      security:
+        - csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/TicketCode"
+      responses:
+        "200":
+          description: Tiket dibatalkan; `status` sekarang `cancelled`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TicketEnvelope" }
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "429":
+          $ref: "#/components/responses/Error429"
 
   /public/v1/tickets/{code}:
     get:
@@ -235,6 +264,8 @@ paths:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
         "403":
           $ref: "#/components/responses/Error403"
+        "429":
+          $ref: "#/components/responses/Error429"
 
   /operational/v1/auth/logout:
     post:
@@ -520,7 +551,21 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
     Error409:
-      description: Tiket sudah ditukar (`ALREADY_REDEEMED`), milik event lain (`WRONG_EVENT`), statusnya bukan `booked` (`NOT_BOOKED`), atau prefix event sudah dipakai (`CONFLICT`).
+      description: Tiket sudah ditukar (`ALREADY_REDEEMED`), milik event lain (`WRONG_EVENT`), statusnya bukan `booked` (`NOT_BOOKED`), sudah ditukar atau dibatalkan saat pembatalan, atau prefix event sudah dipakai (`CONFLICT`).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Error429:
+      description: >
+        `RATE_LIMITED`: terlalu banyak request dari satu IP. Pesan dan batal tiket
+        berbagi batas 30 per 10 menit; login 10 per 10 menit.
+      headers:
+        Retry-After:
+          description: Detik sampai boleh mencoba lagi.
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }

@@ -52,8 +52,9 @@ apa adanya.
 | 401 | tidak ada sesi / sesi kedaluwarsa |
 | 403 | sesi ada tapi role tidak cukup, atau token CSRF tidak cocok |
 | 404 | event, kode tiket, atau path tidak ada |
-| 409 | tiket sudah ditukar atau milik event lain, prefix event bentrok |
+| 409 | tiket sudah ditukar, sudah dibatalkan, atau milik event lain; prefix event bentrok |
 | 422 | format benar tapi tidak lolos aturan bisnis (slot penuh, event sudah tutup, KTP belum dicentang, jam di luar slot) |
+| 429 | `RATE_LIMITED`, terlalu banyak request dari satu IP; header `Retry-After` berisi detik tunggu |
 | 500 | kesalahan tak terduga |
 | 503 | database tidak siap (hanya endpoint health) |
 
@@ -70,6 +71,7 @@ memuat `\u0000`.
 | `CSRF_MISSING` | 403 | header `X-CSRF-TOKEN` tidak ada atau tidak cocok dengan cookie |
 | `NOT_FOUND` | 404 | event atau tiket tidak ada |
 | `CONFLICT` | 409 | data bentrok dengan yang sudah ada |
+| `RATE_LIMITED` | 429 | terlalu banyak request dari satu IP |
 | `INTERNAL` | 500 | kesalahan tak terduga; detailnya hanya di log server dengan `traceId` yang sama |
 
 Kode khusus per endpoint ditulis di bagian masing-masing.
@@ -83,6 +85,10 @@ Kode khusus per endpoint ditulis di bagian masing-masing.
   - `401 INVALID_CREDENTIALS` untuk email tidak dikenal maupun kata sandi salah;
     pesan dan waktu responsnya sengaja sama supaya tidak membocorkan email yang
     terdaftar
+  `429 RATE_LIMITED` setelah 10 percobaan dari satu IP dalam 10 menit.
+- Batas per IP membaca `X-Real-IP` atau entri terakhir `X-Forwarded-For` hanya bila
+  koneksi datang dari loopback (nginx di mesin yang sama). Tanpa header itu di balik
+  proxy, batas dilewati supaya semua pengunjung tidak berbagi satu kuota.
 - `POST /operational/v1/auth/logout` → `204`, cookie dihapus.
 - `GET /operational/v1/auth/me` → `200` `{ "user": User }`, `401` bila tanpa sesi
   atau akun sudah nonaktif.
@@ -164,6 +170,17 @@ lalu 4 karakter dari `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (tanpa I, L, O, 0, 1).
 - `422 SLOT_INVALID` bila `slotStart` bukan batas slot event
 - `422 SLOT_PAST` bila slot sudah selesai
 - `422 SLOT_FULL` bila kuota habis (`details` menunjuk `slotStart`)
+- `429 RATE_LIMITED` bila satu IP sudah memesan atau membatalkan 30 kali dalam 10 menit
+
+### `POST /public/v1/tickets/{code}/cancellations`
+
+Membatalkan tiket yang masih `booked`. Tanpa body. Pengunjung tidak punya akun,
+jadi memegang kode berarti pemilik tiket. Tempatnya langsung kembali ke kuota slot.
+
+- `200` `{ "ticket": Ticket }` dengan `status: "cancelled"`
+- `404 NOT_FOUND` bila kode tidak dikenal
+- `409 CONFLICT` bila tiket sudah ditukar atau sudah dibatalkan
+- `429 RATE_LIMITED`, berbagi batas dengan pemesanan
 
 ### `GET /public/v1/tickets/{code}`
 
