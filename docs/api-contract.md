@@ -54,6 +54,7 @@ apa adanya.
 | 409 | tiket sudah ditukar, event sudah tutup |
 | 415 | content type bukan JSON |
 | 422 | format benar tapi tidak lolos aturan bisnis (slot penuh, KTP belum dicentang, jam di luar slot) |
+| 429 | `RATE_LIMITED`, terlalu banyak request dari satu IP; header `Retry-After` berisi detik tunggu |
 | 500 | kesalahan tak terduga |
 | 503 | database tidak siap |
 
@@ -61,6 +62,10 @@ apa adanya.
 
 - `POST /operational/v1/auth/login` body `{ "email": "...", "password": "..." }`.
   Sukses `200` + cookie `antay_session` (HttpOnly, SameSite=Strict).
+  `429 RATE_LIMITED` setelah 10 percobaan dari satu IP dalam 10 menit.
+- Batas per IP membaca `X-Real-IP` atau entri terakhir `X-Forwarded-For` hanya bila
+  koneksi datang dari loopback (nginx di mesin yang sama). Tanpa header itu di balik
+  proxy, batas dilewati supaya semua pengunjung tidak berbagi satu kuota.
 - `POST /operational/v1/auth/logout` → `204`, cookie dihapus.
 - `GET /operational/v1/auth/me` → `200` `{ "user": User }`, `401` bila tanpa sesi.
 - Semua POST/PATCH/DELETE wajib mengirim header `X-CSRF-TOKEN` yang nilainya sama
@@ -128,6 +133,7 @@ harus tepat di batas slot event dan belum lewat; kuota slot belum penuh.
 - `422 SLOT_FULL`, `422 SLOT_PAST`, `422 SLOT_INVALID`, `422 EVENT_CLOSED`
 - `404 NOT_FOUND` bila event tidak ada
 - `400 VALIDATION` untuk nama terlalu pendek atau field kosong
+- `429 RATE_LIMITED` bila satu IP sudah memesan atau membatalkan 30 kali dalam 10 menit
 
 ### `POST /public/v1/tickets/{code}/cancellations`
 
@@ -137,6 +143,7 @@ jadi memegang kode berarti pemilik tiket. Tempatnya langsung kembali ke kuota sl
 - `200` `{ "ticket": Ticket }` dengan `status: "cancelled"`
 - `404 NOT_FOUND` bila kode tidak dikenal
 - `409 CONFLICT` bila tiket sudah ditukar atau sudah dibatalkan
+- `429 RATE_LIMITED`, berbagi batas dengan pemesanan
 
 ### `GET /public/v1/tickets/{code}`
 

@@ -17,25 +17,26 @@ func registerSystem(mux *nethttp.ServeMux, h Handlers) {
 	mux.HandleFunc("GET /health/dependencies", h.Health.Ready)
 }
 
-// registerPublic: halaman pengunjung dan papan antrean, tanpa sesi.
-func registerPublic(mux *nethttp.ServeMux, h Handlers) {
+// registerPublic: halaman pengunjung dan papan antrean, tanpa sesi. Pesan dan
+// batal tiket dibatasi per IP supaya satu skrip tidak bisa menghabiskan kuota slot.
+func registerPublic(mux *nethttp.ServeMux, h Handlers, limit func(nethttp.Handler) nethttp.Handler) {
 	mux.HandleFunc("GET /public/v1/events", h.Public.ListEvents)
 	mux.HandleFunc("GET /public/v1/events/{eventId}", h.Public.GetEvent)
 	mux.HandleFunc("GET /public/v1/events/{eventId}/board", h.Public.GetBoard)
-	mux.HandleFunc("POST /public/v1/tickets", h.Public.CreateTicket)
+	mux.Handle("POST /public/v1/tickets", limit(nethttp.HandlerFunc(h.Public.CreateTicket)))
 	mux.HandleFunc("GET /public/v1/tickets/{code}", h.Public.GetTicket)
-	mux.HandleFunc("POST /public/v1/tickets/{code}/cancellations", h.Public.CancelTicket)
+	mux.Handle("POST /public/v1/tickets/{code}/cancellations", limit(nethttp.HandlerFunc(h.Public.CancelTicket)))
 }
 
 // registerOperational memasang sesi pada semua rute kecuali login. Admin boleh
 // melakukan semua aksi staff; RequireRole memperlakukan admin sebagai super.
-func registerOperational(mux *nethttp.ServeMux, h Handlers, s *middleware.Sessions) {
+func registerOperational(mux *nethttp.ServeMux, h Handlers, s *middleware.Sessions, loginLimit func(nethttp.Handler) nethttp.Handler) {
 	staff := func(fn nethttp.HandlerFunc) nethttp.Handler { return s.Require(fn) }
 	admin := func(fn nethttp.HandlerFunc) nethttp.Handler {
 		return middleware.Chain(fn, s.Require, middleware.RequireRole(user.RoleAdmin))
 	}
 
-	mux.HandleFunc("POST /operational/v1/auth/login", h.Auth.Login)
+	mux.Handle("POST /operational/v1/auth/login", loginLimit(nethttp.HandlerFunc(h.Auth.Login)))
 	mux.Handle("POST /operational/v1/auth/logout", staff(h.Auth.Logout))
 	mux.Handle("GET /operational/v1/auth/me", staff(h.Auth.Me))
 

@@ -168,6 +168,8 @@ paths:
           $ref: "#/components/responses/Error415"
         "422":
           $ref: "#/components/responses/Error422"
+        "429":
+          $ref: "#/components/responses/Error429"
 
   /public/v1/tickets/{code}/cancellations:
     post:
@@ -191,6 +193,8 @@ paths:
           $ref: "#/components/responses/Error404"
         "409":
           $ref: "#/components/responses/Error409"
+        "429":
+          $ref: "#/components/responses/Error429"
 
   /public/v1/tickets/{code}:
     get:
@@ -237,6 +241,8 @@ paths:
           $ref: "#/components/responses/Error401"
         "415":
           $ref: "#/components/responses/Error415"
+        "429":
+          $ref: "#/components/responses/Error429"
 
   /operational/v1/auth/logout:
     post:
@@ -508,6 +514,17 @@ components:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
     Error409:
       description: Konflik bisnis, misalnya tiket sudah ditukar atau event sudah tutup.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Error429:
+      description: >
+        `RATE_LIMITED`: terlalu banyak request dari satu IP. Pesan dan batal tiket
+        berbagi batas 30 per 10 menit; login 10 per 10 menit.
+      headers:
+        Retry-After:
+          description: Detik sampai boleh mencoba lagi.
+          schema: { type: integer }
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
