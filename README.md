@@ -54,7 +54,11 @@ frontend/                      React 19 + TypeScript + Vite 8 + Tailwind 4
   src/components/ui/           primitif (Button, Input, Select, Modal, Toast)
   src/pages/                   halaman per menu
 docs/api-contract.md           kontrak API yang dipakai bersama
+docs/system-map.html           peta sistem: halaman, nginx, API, use case, database (EN/ID)
+docs/erd.html                  ERD database: tabel, relasi, aturan (EN/ID)
 ```
+
+Dua berkas HTML di `docs/` bisa dibuka langsung di browser. Kalau skema, rute, atau alur berubah, perbarui keduanya di commit yang sama.
 
 Arah dependensi: `interfaces -> application -> domain <- infrastructure`. Domain tidak mengimpor layer lain; repository didefinisikan sebagai interface di domain dan diimplementasikan di `infrastructure/postgres`.
 
