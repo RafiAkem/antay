@@ -3,27 +3,26 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"runtime"
+	"io/fs"
 	"sort"
 
-	"github.com/RafiAkem/antay/backend/internal/db"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/RafiAkem/antay/backend/internal/infrastructure/postgres"
 )
 
-// migrate menjalankan skema lewat db.Migrate, dengan satu pengecualian: pada
-// database kosong db.Migrate membuat tabel schema_migrations lebih dulu,
+// migrate menjalankan skema lewat postgres.Migrate, dengan satu pengecualian: pada
+// database kosong postgres.Migrate membuat tabel schema_migrations lebih dulu,
 // sementara 0001_init.sql juga membuatnya di dalam transaksi yang sama. Akibatnya
 // migrasi bawaan selalu gagal di database baru. Berkas migrasi dijalankan
-// langsung di sini, lalu db.Migrate dipanggil untuk memastikan semuanya tercatat.
+// langsung di sini, lalu postgres.Migrate dipanggil untuk memastikan semuanya tercatat.
 func migrate(ctx context.Context, pool *pgxpool.Pool) error {
 	var ready bool
 	if err := pool.QueryRow(ctx, `SELECT to_regclass('public.users') IS NOT NULL`).Scan(&ready); err != nil {
 		return err
 	}
 	if ready {
-		return db.Migrate(ctx, pool)
+		return postgres.Migrate(ctx, pool)
 	}
 
 	// Sisa percobaan Migrate yang gagal bisa meninggalkan tabel riwayat kosong.
@@ -44,11 +43,8 @@ func migrate(ctx context.Context, pool *pgxpool.Pool) error {
 		}
 	}
 
-	dir, err := migrationsDir()
-	if err != nil {
-		return err
-	}
-	entries, err := os.ReadDir(dir)
+	migrations := postgres.Migrations()
+	entries, err := fs.ReadDir(migrations, ".")
 	if err != nil {
 		return err
 	}
@@ -61,7 +57,7 @@ func migrate(ctx context.Context, pool *pgxpool.Pool) error {
 	sort.Strings(names)
 
 	for _, name := range names {
-		body, err := os.ReadFile(filepath.Join(dir, name))
+		body, err := fs.ReadFile(migrations, name)
 		if err != nil {
 			return err
 		}
@@ -73,32 +69,5 @@ func migrate(ctx context.Context, pool *pgxpool.Pool) error {
 			return err
 		}
 	}
-	return db.Migrate(ctx, pool)
-}
-
-// migrationsDir mencari folder migrasi dari beberapa kemungkinan lokasi supaya
-// perintah tetap jalan baik lewat `go run` maupun dari root repo.
-func migrationsDir() (string, error) {
-	candidates := []string{
-		filepath.Join("internal", "db", "migrations"),
-		filepath.Join("..", "internal", "db", "migrations"),
-	}
-	if _, file, _, ok := runtime.Caller(0); ok {
-		candidates = append(candidates,
-			filepath.Join(filepath.Dir(file), "..", "..", "internal", "db", "migrations"))
-	}
-	for _, candidate := range candidates {
-		if entries, err := os.ReadDir(candidate); err == nil && len(entries) > 0 {
-			return candidate, nil
-		}
-	}
-	return "", fmt.Errorf("folder migrations tidak ditemukan dari %s", mustGetwd())
-}
-
-func mustGetwd() string {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "direktori tidak diketahui"
-	}
-	return dir
+	return postgres.Migrate(ctx, pool)
 }

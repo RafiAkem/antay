@@ -10,16 +10,22 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/RafiAkem/antay/backend/internal/analytics"
-	"github.com/RafiAkem/antay/backend/internal/app"
-	"github.com/RafiAkem/antay/backend/internal/auth"
-	"github.com/RafiAkem/antay/backend/internal/config"
-	"github.com/RafiAkem/antay/backend/internal/db"
-	"github.com/RafiAkem/antay/backend/internal/health"
-	"github.com/RafiAkem/antay/backend/internal/httpx"
-	"github.com/RafiAkem/antay/backend/internal/operational"
-	"github.com/RafiAkem/antay/backend/internal/public"
-	"github.com/RafiAkem/antay/backend/internal/store"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/RafiAkem/antay/backend/internal/application/booking"
+	"github.com/RafiAkem/antay/backend/internal/application/catalog"
+	"github.com/RafiAkem/antay/backend/internal/application/counter"
+	"github.com/RafiAkem/antay/backend/internal/application/identity"
+	"github.com/RafiAkem/antay/backend/internal/application/reporting"
+	"github.com/RafiAkem/antay/backend/internal/application/scheduling"
+	"github.com/RafiAkem/antay/backend/internal/domain/shared"
+	"github.com/RafiAkem/antay/backend/internal/infrastructure/config"
+	"github.com/RafiAkem/antay/backend/internal/infrastructure/postgres"
+	"github.com/RafiAkem/antay/backend/internal/infrastructure/postgres/store"
+	"github.com/RafiAkem/antay/backend/internal/infrastructure/security"
+	httpapi "github.com/RafiAkem/antay/backend/internal/interfaces/http"
+	"github.com/RafiAkem/antay/backend/internal/interfaces/http/handler"
+	"github.com/RafiAkem/antay/backend/internal/interfaces/http/middleware"
 )
 
 func main() {
@@ -36,7 +42,7 @@ func run(log *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	pool, err := db.Open(ctx, cfg.DatabaseURL)
+	pool, err := postgres.Open(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return err
 	}
@@ -46,49 +52,19 @@ func run(log *slog.Logger) error {
 		return err
 	}
 	if cfg.AutoMigrate {
-		if err := db.Migrate(ctx, pool); err != nil {
+		if err := postgres.Migrate(ctx, pool); err != nil {
 			return err
 		}
 	}
 
-	authSvc, err := auth.New(cfg.JWTPrivatePEM, cfg.JWTPublicPEM, cfg.SessionTTL, cfg.CookieSecure)
+	api, err := buildHandler(cfg, pool, log)
 	if err != nil {
 		return err
 	}
 
-	deps := app.Deps{
-		Store:   store.New(pool),
-		Pool:    pool,
-		Auth:    authSvc,
-		Now:     time.Now,
-		Version: cfg.Version,
-	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		httpx.OK(w, r, "Antay API", map[string]string{"service": "antay-api", "version": cfg.Version})
-	})
-	// Klien memanggil ini sekali sebelum menulis, lalu mengirim tokennya balik.
-	mux.HandleFunc("GET /csrf", func(w http.ResponseWriter, r *http.Request) {
-		authSvc.IssueCSRF(w)
-		httpx.NoContent(w)
-	})
-
-	health.New(pool, cfg.Version).Register(mux)
-	public.New(deps).Register(mux)
-	operational.New(deps).Register(mux, authSvc.Middleware)
-	analytics.New(deps).Register(mux, authSvc.Middleware)
-
-	handler := httpx.WithOptions(auth.Chain(mux,
-		httpx.RequestID,
-		httpx.LogRequests(log),
-		httpx.Recover(log),
-		auth.CSRFMiddleware,
-	), httpx.Options{Version: cfg.Version, Now: time.Now})
-
 	server := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           handler,
+		Handler:           api,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
@@ -112,4 +88,35 @@ func run(log *slog.Logger) error {
 		defer cancel()
 		return server.Shutdown(shutdownCtx)
 	}
+}
+
+// buildHandler adalah composition root: repository infrastruktur dirangkai ke
+// service application, lalu service ke handler HTTP.
+func buildHandler(cfg config.Config, pool *pgxpool.Pool, log *slog.Logger) (http.Handler, error) {
+	tokens, err := security.NewTokenService(cfg.JWTPrivatePEM, cfg.SessionTTL)
+	if err != nil {
+		return nil, err
+	}
+	sessions := middleware.NewSessions(tokens, cfg.CookieSecure)
+
+	q := store.New(pool)
+	events := postgres.NewEventRepo(q)
+	tickets := postgres.NewTicketRepo(pool, q)
+	users := postgres.NewUserRepo(q)
+	clock := shared.Clock(time.Now)
+
+	return httpapi.NewRouter(
+		httpapi.Config{Version: cfg.Version, Log: log, Sessions: sessions},
+		httpapi.Handlers{
+			Health: handler.NewHealth(pool, cfg.Version),
+			Auth:   handler.NewAuth(identity.New(users, security.Bcrypt{}, tokens), sessions),
+			Public: handler.NewPublic(
+				catalog.New(events, clock),
+				booking.New(events, tickets, clock),
+			),
+			Counter:    handler.NewCounter(counter.New(events, tickets, clock)),
+			Scheduling: handler.NewScheduling(scheduling.New(events, clock)),
+			Reporting:  handler.NewReporting(reporting.New(events, postgres.NewReportingReadModel(q), clock)),
+		},
+	), nil
 }
