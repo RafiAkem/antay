@@ -35,7 +35,7 @@ func run() error {
 	if err := pool.Ping(ctx); err != nil {
 		return err
 	}
-	if err := migrate(ctx, pool); err != nil {
+	if err := postgres.Migrate(ctx, pool); err != nil {
 		return err
 	}
 

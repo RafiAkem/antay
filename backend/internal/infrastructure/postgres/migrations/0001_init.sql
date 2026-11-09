@@ -59,9 +59,3 @@ CREATE TABLE tickets (
 );
 CREATE INDEX tickets_event_slot_idx ON tickets (event_id, slot_start, status);
 CREATE INDEX tickets_event_status_idx ON tickets (event_id, status);
-
--- Satu baris per service, dipakai health check dan audit deploy.
-CREATE TABLE schema_migrations (
-    version    text PRIMARY KEY,
-    applied_at timestamptz NOT NULL DEFAULT now()
-);
