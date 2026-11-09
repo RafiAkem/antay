@@ -29,6 +29,8 @@ export function AppLayout() {
             <NavLink
               key={item.path}
               to={item.path}
+              target={item.newTab ? '_blank' : undefined}
+              rel={item.newTab ? 'noopener' : undefined}
               end={item.path === '/'}
               className={({ isActive }) =>
                 `flex h-8 items-center gap-2.5 rounded-[var(--radius-control)] px-2.5 text-sm ${
@@ -42,6 +44,7 @@ export function AppLayout() {
                     <NavIcon name={item.icon} />
                   </span>
                   {item.label}
+                  {item.newTab ? <span className="sr-only"> (tab baru)</span> : null}
                 </>
               )}
             </NavLink>
@@ -82,6 +85,8 @@ export function AppLayout() {
             <NavLink
               key={item.path}
               to={item.path}
+              target={item.newTab ? '_blank' : undefined}
+              rel={item.newTab ? 'noopener' : undefined}
               end={item.path === '/'}
               className={({ isActive }) =>
                 `flex h-12 flex-col items-center justify-center gap-0.5 rounded text-[11px] leading-[14px] ${
@@ -91,6 +96,7 @@ export function AppLayout() {
             >
               <NavIcon name={item.icon} />
               {item.label}
+              {item.newTab ? <span className="sr-only"> (tab baru)</span> : null}
             </NavLink>
           ))}
         </nav>
