@@ -24,6 +24,7 @@ func registerPublic(mux *nethttp.ServeMux, h Handlers) {
 	mux.HandleFunc("GET /public/v1/events/{eventId}/board", h.Public.GetBoard)
 	mux.HandleFunc("POST /public/v1/tickets", h.Public.CreateTicket)
 	mux.HandleFunc("GET /public/v1/tickets/{code}", h.Public.GetTicket)
+	mux.HandleFunc("POST /public/v1/tickets/{code}/cancellations", h.Public.CancelTicket)
 }
 
 // registerOperational memasang sesi pada semua rute kecuali login. Admin boleh

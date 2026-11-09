@@ -204,6 +204,14 @@ export async function fetchTicket(code: string): Promise<Ticket> {
   return data.ticket
 }
 
+export async function cancelTicket(code: string): Promise<Ticket> {
+  const data = await callApi<{ ticket: Ticket }>(
+    `/public/v1/tickets/${encodeURIComponent(code)}/cancellations`,
+    { method: 'POST' },
+  )
+  return data.ticket
+}
+
 // Tiket pengunjung disimpan lokal karena pengunjung tidak punya akun. Detailnya
 // tetap diambil dari server supaya status penukaran selalu yang terbaru.
 export async function fetchMyTickets(): Promise<Ticket[]> {

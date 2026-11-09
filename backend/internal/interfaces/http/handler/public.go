@@ -175,6 +175,22 @@ func (h *Public) CreateTicket(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Public) CancelTicket(w http.ResponseWriter, r *http.Request) {
+	found, err := h.booking.Cancel(r.Context(), r.PathValue("code"))
+	switch {
+	case err == nil:
+		response.OK(w, r, "Tiket dibatalkan.", map[string]any{
+			"ticket": dto.TicketOf(found.Ticket, found.Event),
+		})
+	case errors.Is(err, ticket.ErrNotFound):
+		response.NotFound(w, r, "Kode tiket tidak ditemukan.")
+	case errors.Is(err, ticket.ErrNotCancellable):
+		response.Conflict(w, r, "Tiket sudah ditukar atau sudah dibatalkan.")
+	default:
+		h.internal(w, r, "membatalkan tiket", err)
+	}
+}
+
 func (h *Public) GetTicket(w http.ResponseWriter, r *http.Request) {
 	found, err := h.booking.Find(r.Context(), r.PathValue("code"))
 	if err != nil {

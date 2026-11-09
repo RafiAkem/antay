@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ApiError, createTicket, fetchMyTickets, fetchOpenEvent } from '@/lib/api'
+import { ApiError, cancelTicket, createTicket, fetchMyTickets, fetchOpenEvent } from '@/lib/api'
 import type { EventDetail, Ticket } from '@/types/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardHead } from '@/components/ui/card'
@@ -26,6 +26,7 @@ export function EventPage() {
   const [name, setName] = useState('')
   const [ktp, setKtp] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
@@ -93,6 +94,22 @@ export function EventPage() {
       delete next.visitorName
       return next
     })
+  }
+
+  async function handleCancel(code: string) {
+    if (cancelling) return
+    setCancelling(true)
+    try {
+      const ticket = await cancelTicket(code)
+      setTickets((prev) => prev.map((item) => (item.code === ticket.code ? ticket : item)))
+      toast.show(`Tiket ${ticket.code} dibatalkan. Tempatnya kembali tersedia.`, 'ok')
+    } catch (cause) {
+      toast.error(cause instanceof ApiError ? cause.message : 'Tiket gagal dibatalkan. Coba lagi.')
+      void refreshTickets()
+    } finally {
+      setCancelling(false)
+      void loadEvent()
+    }
   }
 
   async function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
@@ -220,7 +237,13 @@ export function EventPage() {
           </Card>
 
           {activeTicket ? (
-            <TicketCard ticket={activeTicket} tickets={myTickets} onSelect={setActiveCode} />
+            <TicketCard
+              ticket={activeTicket}
+              tickets={myTickets}
+              onSelect={setActiveCode}
+              onCancel={handleCancel}
+              cancelling={cancelling}
+            />
           ) : (
             <Card>
               <CardHead title="Tiket kamu" />

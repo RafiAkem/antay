@@ -129,6 +129,15 @@ harus tepat di batas slot event dan belum lewat; kuota slot belum penuh.
 - `404 NOT_FOUND` bila event tidak ada
 - `400 VALIDATION` untuk nama terlalu pendek atau field kosong
 
+### `POST /public/v1/tickets/{code}/cancellations`
+
+Membatalkan tiket yang masih `booked`. Tanpa body. Pengunjung tidak punya akun,
+jadi memegang kode berarti pemilik tiket. Tempatnya langsung kembali ke kuota slot.
+
+- `200` `{ "ticket": Ticket }` dengan `status: "cancelled"`
+- `404 NOT_FOUND` bila kode tidak dikenal
+- `409 CONFLICT` bila tiket sudah ditukar atau sudah dibatalkan
+
 ### `GET /public/v1/tickets/{code}`
 
 ```json

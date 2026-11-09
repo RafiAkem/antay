@@ -10,7 +10,7 @@ Prototipe aslinya tetap ada di branch `prototype` (`loket-pintar.html` + `server
 |---|---|---|---|
 | Beranda | `/` | Pengunjung | Penjelasan produk dan cara pakai |
 | Event | `/events` | Pengunjung | Card semua event hari ini |
-| Detail event | `/events/:eventId` | Pengunjung | Pilih slot jam datang, dapat kode + QR, lihat tiket |
+| Detail event | `/events/:eventId` | Pengunjung | Pilih slot jam datang, dapat kode + QR, lihat dan batalkan tiket |
 | Papan | `/board` | Layar TV | Antrean, perkiraan tunggu, slot berjalan dan berikutnya |
 | Masuk | `/login` | Petugas | Login akun staff atau admin |
 | Loket | `/counter` | Petugas loket | Cek kode, cocokkan KTP, serahkan item, koreksi antrean |
@@ -31,7 +31,7 @@ backend/                       Go 1.27, net/http, pgx, sqlc — Domain-Driven De
     user/                      akun petugas/admin dan sesi
   internal/application/        use case, hanya bergantung ke interface domain
     catalog/                   daftar event dan papan antrean (pengunjung)
-    booking/                   pesan tiket + retry kode bentrok, lihat tiket
+    booking/                   pesan tiket + retry kode bentrok, lihat dan batalkan tiket
     identity/                  login dan sesi petugas
     counter/                   loket: pemegang tiket, koreksi antrean, cek, tukar
     scheduling/                admin membuat event
@@ -100,6 +100,7 @@ Perintah lain: `make seed`, `make api`, `make web`, `make build`, `make test`, `
 - Jam slot disimpan sebagai menit sejak tengah malam. Acara berjalan satu hari di satu zona waktu, jadi aritmetika slot bebas masalah zona waktu. API tetap mengirim `"HH:MM"`.
 - Kuota slot dicek di dalam transaksi dengan `SELECT ... FOR UPDATE` pada baris event, supaya dua pemesan bersamaan tidak melewati kapasitas.
 - Pengunjung tidak punya akun. Hanya kode tiket yang disimpan di perangkat, detailnya selalu diambil dari server.
+- Karena tanpa akun, memegang kode berarti pemilik tiket. Pengunjung bisa membatalkan tiket yang belum ditukar (`POST /public/v1/tickets/{code}/cancellations`); tiket `cancelled` tidak dihitung ke kuota, jadi tempatnya langsung bisa dipesan lagi.
 - Sesi petugas: JWT RS256 berumur pendek di cookie `HttpOnly; SameSite=Strict`, plus token CSRF double submit untuk semua tulis.
 - Antrean dihitung manual oleh petugas di versi ini. Kamera dan AI (COCO-SSD + Jev) dari prototipe belum dibawa.
 - Grafik dasbor digambar dengan SVG biasa, tanpa library chart.

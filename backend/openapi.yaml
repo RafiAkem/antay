@@ -169,6 +169,29 @@ paths:
         "422":
           $ref: "#/components/responses/Error422"
 
+  /public/v1/tickets/{code}/cancellations:
+    post:
+      tags: [public]
+      summary: Batalkan tiket yang belum ditukar
+      description: >
+        Pengunjung tidak punya akun, jadi memegang kode berarti pemilik tiket.
+        Tempat di slot langsung kembali tersedia. Tanpa body.
+      operationId: cancelTicket
+      security:
+        - csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/TicketCode"
+      responses:
+        "200":
+          description: Tiket dibatalkan; `status` sekarang `cancelled`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TicketEnvelope" }
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+
   /public/v1/tickets/{code}:
     get:
       tags: [public]
