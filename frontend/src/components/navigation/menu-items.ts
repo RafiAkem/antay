@@ -5,13 +5,15 @@ export type MenuItem = {
   path: string
   icon: 'ticket' | 'counter' | 'board' | 'chart'
   roles: Role[]
+  // Papan dipasang di layar TV, jadi dibuka di tab sendiri supaya loket tetap terbuka.
+  newTab?: boolean
 }
 
 // Satu daftar untuk rail desktop dan nav bawah di ponsel. Jangan bikin salinan.
 export const MENU_ITEMS: MenuItem[] = [
   { label: 'Event', path: '/events', icon: 'ticket', roles: ['staff', 'admin'] },
   { label: 'Loket', path: '/counter', icon: 'counter', roles: ['staff', 'admin'] },
-  { label: 'Papan', path: '/board', icon: 'board', roles: ['staff', 'admin'] },
+  { label: 'Papan', path: '/board', icon: 'board', roles: ['staff', 'admin'], newTab: true },
   { label: 'Dasbor', path: '/dashboard', icon: 'chart', roles: ['admin'] },
 ]
 
