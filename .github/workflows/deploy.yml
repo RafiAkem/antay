@@ -1,0 +1,63 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntax check
+        run: node --check server.mjs
+
+      - name: Install deploy key
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Rsync to VPS
+        run: |
+          rsync -az --delete \
+            --exclude='.git' --exclude='.github' --exclude='.env*' --exclude='node_modules' \
+            -e "ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+            ./ ubuntu@${{ secrets.VPS_HOST }}:/home/ubuntu/antay/
+
+      - name: Restart PM2
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new \
+            ubuntu@${{ secrets.VPS_HOST }} '
+              cd /home/ubuntu/antay || exit 1
+              pm2 restart antay --update-env >/dev/null 2>&1 || PORT=3010 pm2 start server.mjs --name antay --update-env
+              pm2 save --force >/dev/null
+              sleep 2
+              pm2 jlist | node -e "
+                let d=\"\";
+                process.stdin.on(\"data\",c=>d+=c).on(\"end\",()=>{
+                  const a=JSON.parse(d).find(x=>x.name===\"antay\");
+                  if(!a){console.log(\"antay missing in pm2\");process.exit(1)}
+                  console.log(a.pm2_env.status, a.pm2_env.env.PORT, a.pm_exec_path);
+                  process.exit(a.pm2_env.status===\"online\"?0:1);
+                })"
+            '
+
+      - name: Verify live
+        run: |
+          for i in 1 2 3 4 5; do
+            code=$(curl -s -o /tmp/live.html -w '%{http_code}' https://antay.rafiakem.tech/ || true)
+            [ "$code" = "200" ] && break
+            sleep 3
+          done
+          echo "HTTP $code, $(wc -c < /tmp/live.html) bytes"
+          test "$code" = "200"
+          echo "live  $(md5sum /tmp/live.html | cut -d' ' -f1)"
+          echo "repo  $(md5sum loket-pintar.html | cut -d' ' -f1)"
+          test "$(md5sum /tmp/live.html | cut -d' ' -f1)" = "$(md5sum loket-pintar.html | cut -d' ' -f1)"
