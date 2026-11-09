@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/* Palet dari prototipe Antay (accent-ladder): biru tua hanya untuk penanda kecil,
+   tint pucat untuk area. Satu aksen, sisanya netral. */
+@theme {
+  --color-ground: #f6f8fe;
+  --color-surface: #ffffff;
+  --color-raised: #f1f4fb;
+  --color-active: #e6ecfb;
+  --color-border-soft: #e3e8f2;
+  --color-rule: #eef1f6;
+  --color-control: #cdd5e1;
+  --color-ink: #1c1f26;
+  --color-muted: #5a6270;
+  --color-faint: #687180;
+  --color-accent: #1747e6;
+  --color-accent-ink: #0f2e99;
+  --color-tint-50: #f1f5ff;
+  --color-tint-100: #e3eafe;
+  --color-tint-200: #c9d6fd;
+  --color-positive: #247b50;
+  --color-positive-bg: #dcfae5;
+  --color-positive-ink: #04250e;
+  --color-negative: #c4242a;
+  --color-negative-bg: #ffedea;
+  --color-negative-ink: #831c1e;
+  --color-warning-bg: #fffbeb;
+  --color-warning-ink: #92400e;
+  --color-warning-border: #fde68a;
+  --color-board: #1c1f26;
+  --color-board-ink: #f3f5f8;
+  --color-board-dim: #a9b1bd;
+  --color-board-line: #343944;
+
+  --font-sans: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+
+  --radius-card: 8px;
+  --radius-control: 6px;
+}
