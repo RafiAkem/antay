@@ -52,7 +52,8 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx) // setelah Commit ini hanya mengembalikan ErrTxClosed
+	// Setelah Commit, Rollback hanya mengembalikan ErrTxClosed.
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	adminID, err := insertUser(ctx, tx, "admin@antay.id", adminHash, "Admin Summarecon", "admin")
 	if err != nil {
