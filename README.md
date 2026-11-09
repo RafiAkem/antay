@@ -45,7 +45,7 @@ backend/                       Go 1.27, net/http, pgx, sqlc — Domain-Driven De
     security/                  JWT RS256 dan bcrypt
   internal/interfaces/http/    router dan rute
     handler/                   handler per area, memetakan error domain ke HTTP
-    middleware/                sesi cookie HttpOnly, CSRF double submit, log, recover
+    middleware/                sesi cookie HttpOnly, CSRF double submit, batas per IP, log, recover
     dto/                       bentuk JSON yang dikirim ke frontend
     response/                  envelope sukses/error standar
   openapi.yaml                 spec OpenAPI 3.1
@@ -94,6 +94,21 @@ CREATE DATABASE antay OWNER antay;
 
 Perintah lain: `make seed`, `make api`, `make web`, `make build`, `make test`, `make lint`, `make sqlc`.
 
+### Produksi di balik nginx
+
+API membatasi request per IP, jadi nginx harus meneruskan IP asli pengunjung. Tanpa header ini batas dilewati sama sekali (lebih aman daripada semua pengunjung berbagi satu kuota), dan tiket bisa dipesan tanpa batas:
+
+```nginx
+location ~ ^/(public|operational|analytics|csrf|health) {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+```
+
+Header itu hanya dipercaya bila koneksi datang dari loopback, jadi API dan nginx harus di mesin yang sama. Di produksi juga set `COOKIE_SECURE=true` karena situsnya HTTPS.
+
 ## Keputusan yang perlu diketahui
 
 - Semua primary key UUID (`gen_random_uuid()`).
@@ -101,6 +116,7 @@ Perintah lain: `make seed`, `make api`, `make web`, `make build`, `make test`, `
 - Kuota slot dicek di dalam transaksi dengan `SELECT ... FOR UPDATE` pada baris event, supaya dua pemesan bersamaan tidak melewati kapasitas.
 - Pengunjung tidak punya akun. Hanya kode tiket yang disimpan di perangkat, detailnya selalu diambil dari server.
 - Karena tanpa akun, memegang kode berarti pemilik tiket. Pengunjung bisa membatalkan tiket yang belum ditukar (`POST /public/v1/tickets/{code}/cancellations`); tiket `cancelled` tidak dihitung ke kuota, jadi tempatnya langsung bisa dipesan lagi.
+- Pesan dan batal tiket dibatasi 30 request per 10 menit per IP, login 10 per 10 menit (`429 RATE_LIMITED` + `Retry-After`). Batasnya longgar karena pengunjung di WiFi mal atau CGNAT operator berbagi satu IP. Hitungannya di memori satu proses, jadi kalau API dijalankan lebih dari satu instance, pindahkan ke Postgres atau Redis.
 - Sesi petugas: JWT RS256 berumur pendek di cookie `HttpOnly; SameSite=Strict`, plus token CSRF double submit untuk semua tulis.
 - Antrean dihitung manual oleh petugas di versi ini. Kamera dan AI (COCO-SSD + Jev) dari prototipe belum dibawa.
 - Grafik dasbor digambar dengan SVG biasa, tanpa library chart.
