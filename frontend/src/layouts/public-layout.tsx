@@ -21,6 +21,7 @@ export function PublicLayout() {
             </Link>
             <Link to="/board" target="_blank" rel="noopener" className="font-medium text-muted hover:text-ink">
               Papan
+              <span className="sr-only"> (tab baru)</span>
             </Link>
             <Link
               to={user ? (user.role === 'admin' ? '/dashboard' : '/counter') : '/login'}
