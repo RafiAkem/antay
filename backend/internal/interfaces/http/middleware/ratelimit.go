@@ -12,7 +12,8 @@ import (
 	"github.com/RafiAkem/antay/backend/internal/interfaces/http/response"
 )
 
-// maxTrackedClients: di atas angka ini, jendela yang sudah habis dibuang dulu.
+// maxTrackedClients membatasi memori: bila penuh, jendela yang sudah habis dibuang;
+// bila masih penuh juga, semua hitungan direset.
 const maxTrackedClients = 10000
 
 // RateLimit membatasi jumlah request per IP klien dalam satu jendela waktu tetap.
@@ -48,6 +49,10 @@ func (l *RateLimit) allow(key string) (time.Duration, bool) {
 					delete(l.hits, k)
 				}
 			}
+			if len(l.hits) >= maxTrackedClients {
+				// shortcut: reset total; penyerang dengan 10.000 IP aktif memang sudah lolos batas per IP. Ganti ke LRU bila perlu adil.
+				clear(l.hits)
+			}
 		}
 		w = hitWindow{start: now}
 	}
@@ -79,7 +84,8 @@ func (l *RateLimit) Middleware(next http.Handler) http.Handler {
 }
 
 // ClientIP mengambil IP klien. X-Real-IP dan X-Forwarded-For hanya dipercaya bila
-// koneksi datang dari loopback (nginx di mesin yang sama), karena klien luar bisa
+// koneksi datang dari loopback atau jaringan privat (nginx di mesin yang sama, di
+// container lain, atau di host internal), karena klien dari internet bisa
 // memalsukannya. Hasil kosong berarti di balik proxy tanpa header tersebut.
 // Alamat IPv6 dipotong ke /64 karena satu pelanggan biasanya memegang satu /64 penuh.
 func ClientIP(r *http.Request) string {
@@ -91,7 +97,7 @@ func ClientIP(r *http.Request) string {
 	if peer == nil {
 		return ""
 	}
-	if !peer.IsLoopback() {
+	if !peer.IsLoopback() && !peer.IsPrivate() {
 		return keyOf(peer)
 	}
 	if ip := net.ParseIP(strings.TrimSpace(r.Header.Get("X-Real-IP"))); ip != nil {

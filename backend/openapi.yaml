@@ -557,8 +557,9 @@ components:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
     Error429:
       description: >
-        `RATE_LIMITED`: terlalu banyak request dari satu IP. Pesan dan batal tiket
-        berbagi batas 30 per 10 menit; login 10 per 10 menit.
+        `RATE_LIMITED`: terlalu banyak request dari satu IP (IPv6 per /64). Pesan
+        dan batal tiket berbagi batas 30 request per 10 menit, termasuk yang gagal;
+        login 10 per 10 menit.
       headers:
         Retry-After:
           description: Detik sampai boleh mencoba lagi.
