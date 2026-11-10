@@ -19,8 +19,9 @@ export function PublicLayout() {
             <Link to="/events" className="hidden font-medium text-muted hover:text-ink sm:inline">
               Event
             </Link>
-            <Link to="/board" className="font-medium text-muted hover:text-ink">
+            <Link to="/board" target="_blank" rel="noopener" className="font-medium text-muted hover:text-ink">
               Papan
+              <span className="sr-only"> (tab baru)</span>
             </Link>
             <Link
               to={user ? (user.role === 'admin' ? '/dashboard' : '/counter') : '/login'}

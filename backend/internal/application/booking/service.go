@@ -69,6 +69,24 @@ func (s *Service) bookWithFreshCode(ctx context.Context, ev event.Event, name st
 	return ticket.Ticket{}, fmt.Errorf("kode tiket bentrok %d kali: %w", maxCodeAttempts, lastErr)
 }
 
+// Cancel membatalkan tiket yang belum ditukar, sehingga tempatnya di slot bisa
+// dipesan orang lain. Pengunjung tidak punya akun, jadi memegang kode = pemilik.
+// Mengembalikan ticket.ErrNotFound atau ticket.ErrNotCancellable.
+func (s *Service) Cancel(ctx context.Context, rawCode string) (ticket.WithEvent, error) {
+	found, err := s.Find(ctx, rawCode)
+	if err != nil {
+		return ticket.WithEvent{}, err
+	}
+	if found.Ticket.Status != ticket.StatusBooked {
+		return found, ticket.ErrNotCancellable
+	}
+	if err := s.tickets.Cancel(ctx, found.Ticket.Code); err != nil {
+		return found, err
+	}
+	found.Ticket.Status = ticket.StatusCancelled
+	return found, nil
+}
+
 // Find mengembalikan ticket.ErrNotFound bila kode tidak dikenal.
 func (s *Service) Find(ctx context.Context, rawCode string) (ticket.WithEvent, error) {
 	return s.tickets.GetByCode(ctx, ticket.NormalizeVisitorCode(rawCode))

@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import type { Ticket } from '@/types/api'
+import { Button } from '@/components/ui/button'
 import { Card, CardHead } from '@/components/ui/card'
 import { Pill } from '@/components/ui/pill'
 import { waitLabel } from '@/lib/format'
@@ -10,6 +12,8 @@ type Props = {
   ticket: Ticket
   tickets: Ticket[]
   onSelect: (code: string) => void
+  onCancel: (code: string) => void
+  cancelling: boolean
 }
 
 function clockNow(): string {
@@ -38,8 +42,10 @@ function statusOf(ticket: Ticket, past: boolean): { tone: StatusTone; label: str
   }
 }
 
-export function TicketCard({ ticket, tickets, onSelect }: Props) {
+export function TicketCard({ ticket, tickets, onSelect, onCancel, cancelling }: Props) {
   const status = statusOf(ticket, ticket.slotEnd <= clockNow())
+  // Halaman memasang key={ticket.code}, jadi berganti tiket membuat kartu baru dan menutup konfirmasi.
+  const [confirming, setConfirming] = useState(false)
   return (
     <div className="grid gap-4">
       <div className="overflow-hidden rounded-[var(--radius-card)] border border-border-soft bg-surface">
@@ -85,6 +91,26 @@ export function TicketCard({ ticket, tickets, onSelect }: Props) {
           <Pill tone={status.tone}>{status.label}</Pill>
           <span>{status.detail}</span>
         </div>
+        {ticket.status === 'booked' ? (
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border-soft px-5 py-3 text-[13px] text-muted">
+            {confirming ? (
+              <>
+                <span className="mr-auto">Batalkan tiket ini? Tempatnya akan dilepas untuk orang lain.</span>
+                {/* Tombol pemicu hilang saat konfirmasi terbuka, jadi fokus dipindah ke pilihan yang aman. */}
+                <Button size="small" variant="ghost" onClick={() => setConfirming(false)} disabled={cancelling} autoFocus>
+                  Tidak
+                </Button>
+                <Button size="small" variant="danger" onClick={() => onCancel(ticket.code)} disabled={cancelling}>
+                  {cancelling ? 'Membatalkan…' : 'Ya, batalkan'}
+                </Button>
+              </>
+            ) : (
+              <Button size="small" variant="ghost" onClick={() => setConfirming(true)}>
+                Batalkan tiket
+              </Button>
+            )}
+          </div>
+        ) : null}
       </div>
       {tickets.length > 1 ? (
         <Card>

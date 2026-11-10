@@ -25,6 +25,21 @@ type fakeTickets struct {
 	ticket.Repository
 	results []error
 	calls   int
+
+	stored    ticket.WithEvent
+	cancelled []string
+}
+
+func (f *fakeTickets) GetByCode(_ context.Context, code string) (ticket.WithEvent, error) {
+	if code != f.stored.Ticket.Code {
+		return ticket.WithEvent{}, ticket.ErrNotFound
+	}
+	return f.stored, nil
+}
+
+func (f *fakeTickets) Cancel(_ context.Context, code string) error {
+	f.cancelled = append(f.cancelled, code)
+	return nil
 }
 
 func (f *fakeTickets) Book(_ context.Context, b ticket.Booking) (ticket.Ticket, error) {
@@ -91,5 +106,41 @@ func TestBookRejectsBadSlotBeforeSaving(t *testing.T) {
 
 	if !errors.Is(err, ticket.ErrSlotPast) || tickets.calls != 0 {
 		t.Fatalf("slot 10:00 sudah lewat pada 10:40, dapat calls=%d err=%v", tickets.calls, err)
+	}
+}
+
+func TestCancelBookedTicket(t *testing.T) {
+	svc, tickets := newService()
+	tickets.stored = ticket.WithEvent{Ticket: ticket.Ticket{Code: "GL-7KQM", Status: ticket.StatusBooked}}
+
+	// Kode diketik sembarangan tetap dikenali, seperti saat melihat tiket.
+	got, err := svc.Cancel(context.Background(), "gl 7kqm")
+
+	if err != nil {
+		t.Fatalf("Cancel: %v", err)
+	}
+	if got.Ticket.Status != ticket.StatusCancelled || len(tickets.cancelled) != 1 || tickets.cancelled[0] != "GL-7KQM" {
+		t.Fatalf("mau tiket GL-7KQM dibatalkan sekali, dapat status=%q cancelled=%v", got.Ticket.Status, tickets.cancelled)
+	}
+}
+
+func TestCancelRefusesRedeemedTicket(t *testing.T) {
+	svc, tickets := newService()
+	tickets.stored = ticket.WithEvent{Ticket: ticket.Ticket{Code: "GL-7KQM", Status: ticket.StatusRedeemed}}
+
+	_, err := svc.Cancel(context.Background(), "GL-7KQM")
+
+	if !errors.Is(err, ticket.ErrNotCancellable) || len(tickets.cancelled) != 0 {
+		t.Fatalf("tiket yang sudah ditukar tidak boleh dibatalkan, dapat err=%v cancelled=%v", err, tickets.cancelled)
+	}
+}
+
+func TestCancelUnknownCode(t *testing.T) {
+	svc, _ := newService()
+
+	_, err := svc.Cancel(context.Background(), "GL-ZZZZ")
+
+	if !errors.Is(err, ticket.ErrNotFound) {
+		t.Fatalf("mau ErrNotFound, dapat %v", err)
 	}
 }

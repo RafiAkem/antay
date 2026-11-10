@@ -54,7 +54,7 @@ func (s *Service) ListEvents(ctx context.Context) ([]event.Availability, error) 
 			return nil, err
 		}
 	}
-	counts := event.StatusCounts(rows)
+	counts := event.OccupiedCounts(rows)
 	now := s.clock.Minutes()
 	out := make([]event.Availability, 0, len(events))
 	for _, ev := range events {
@@ -119,7 +119,7 @@ func (s *Service) UpdateQueue(ctx context.Context, eventID uuid.UUID, update eve
 	if err != nil {
 		return event.Availability{}, err
 	}
-	return ev.Availability(event.StatusCounts(rows)[ev.ID], s.clock.Minutes()), nil
+	return ev.Availability(event.OccupiedCounts(rows)[ev.ID], s.clock.Minutes()), nil
 }
 
 type Check struct {

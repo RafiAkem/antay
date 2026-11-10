@@ -29,8 +29,11 @@ type Config struct {
 func NewRouter(cfg Config, h Handlers) nethttp.Handler {
 	mux := nethttp.NewServeMux()
 	registerSystem(mux, h)
-	registerPublic(mux, h)
-	registerOperational(mux, h, cfg.Sessions)
+	// Batas longgar karena pengunjung di WiFi mal atau CGNAT operator berbagi satu IP.
+	visitorWrites := middleware.NewRateLimit(30, 10*time.Minute)
+	logins := middleware.NewRateLimit(10, 10*time.Minute)
+	registerPublic(mux, h, visitorWrites.Middleware)
+	registerOperational(mux, h, cfg.Sessions, logins.Middleware)
 	registerAnalytics(mux, h, cfg.Sessions)
 
 	return response.WithOptions(middleware.Chain(mux,

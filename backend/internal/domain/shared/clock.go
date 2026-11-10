@@ -23,14 +23,12 @@ func ClockOf(minutes int32) string {
 	return fmt.Sprintf("%02d:%02d", minutes/60, minutes%60)
 }
 
-// MinutesOf membaca "10:30"; menolak jam di luar 00:00-23:59.
+// MinutesOf membaca "10:30"; menolak selain HH:MM dan jam di luar 00:00-23:59.
 func MinutesOf(clock string) (int32, error) {
-	var h, m int
-	if _, err := fmt.Sscanf(clock, "%d:%d", &h, &m); err != nil {
+	t, err := time.Parse("15:04", clock)
+	// time.Parse menerima jam satu digit, jadi panjangnya dicek terpisah.
+	if err != nil || len(clock) != len("15:04") {
 		return 0, fmt.Errorf("format jam harus HH:MM")
 	}
-	if h < 0 || h > 23 || m < 0 || m > 59 {
-		return 0, fmt.Errorf("jam %s di luar rentang yang wajar", clock)
-	}
-	return int32(h*60 + m), nil
+	return int32(t.Hour()*60 + t.Minute()), nil
 }

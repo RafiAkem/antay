@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ApiError, createTicket, fetchMyTickets, fetchOpenEvent } from '@/lib/api'
+import { ApiError, cancelTicket, createTicket, fetchMyTickets, fetchOpenEvent } from '@/lib/api'
 import type { EventDetail, Ticket } from '@/types/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardHead } from '@/components/ui/card'
@@ -26,8 +26,11 @@ export function EventPage() {
   const [name, setName] = useState('')
   const [ktp, setKtp] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  // Naik setiap kali daftar tiket berubah; hasil refresh yang mulai sebelumnya dibuang.
+  const ticketsVersion = useRef(0)
 
   const myTickets = useMemo(() => tickets.filter((ticket) => ticket.event.id === eventId), [tickets, eventId])
   const activeTicket = useMemo(
@@ -46,13 +49,17 @@ export function EventPage() {
     ).start
   }, [event])
 
-  const loadEvent = useCallback(async () => {
-    setState('loading')
-    setLoadError(null)
+  // quiet: perbarui sisa kuota di belakang layar, tanpa skeleton dan tanpa mengganti halaman bila gagal.
+  const loadEvent = useCallback(async (quiet = false) => {
+    if (!quiet) {
+      setState('loading')
+      setLoadError(null)
+    }
     try {
       setEvent(await fetchOpenEvent(eventId))
       setState('ready')
     } catch (cause) {
+      if (quiet) return
       if (cause instanceof ApiError && cause.status === 404) {
         setState('missing')
         return
@@ -63,8 +70,10 @@ export function EventPage() {
   }, [eventId])
 
   const refreshTickets = useCallback(async () => {
+    const version = ++ticketsVersion.current
     try {
-      setTickets(await fetchMyTickets())
+      const next = await fetchMyTickets()
+      if (version === ticketsVersion.current) setTickets(next)
     } catch {
       // tiket lokal tetap tampil sampai server bisa dihubungi lagi
     }
@@ -95,6 +104,23 @@ export function EventPage() {
     })
   }
 
+  async function handleCancel(code: string) {
+    if (cancelling) return
+    setCancelling(true)
+    try {
+      const ticket = await cancelTicket(code)
+      ticketsVersion.current++
+      setTickets((prev) => prev.map((item) => (item.code === ticket.code ? ticket : item)))
+      toast.show(`Tiket ${ticket.code} dibatalkan. Tempatnya kembali tersedia.`, 'ok')
+      void loadEvent(true)
+    } catch (cause) {
+      toast.error(cause instanceof ApiError ? cause.message : 'Tiket gagal dibatalkan. Coba lagi.')
+      void refreshTickets()
+    } finally {
+      setCancelling(false)
+    }
+  }
+
   async function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault()
     if (!event || !pickedSlot || submitting) return
@@ -113,13 +139,14 @@ export function EventPage() {
     setFieldErrors({})
     try {
       const ticket = await createTicket({ eventId: event.id, slotStart: pickedSlot.start, visitorName })
+      ticketsVersion.current++
       setTickets((prev) => [ticket, ...prev.filter((item) => item.code !== ticket.code)])
       setActiveCode(ticket.code)
       setName('')
       setKtp(false)
       setSlotStart(null)
       toast.show(`Slot dipesan. Kode tiket ${ticket.code}.`, 'ok')
-      void loadEvent()
+      void loadEvent(true)
     } catch (cause) {
       if (cause instanceof ApiError) {
         setFormError(cause.message)
@@ -129,7 +156,7 @@ export function EventPage() {
         setFormError('Tiket gagal dipesan. Coba lagi.')
         toast.error('Tiket gagal dipesan. Coba lagi.')
       }
-      void loadEvent()
+      void loadEvent(true)
     } finally {
       setSubmitting(false)
     }
@@ -220,7 +247,14 @@ export function EventPage() {
           </Card>
 
           {activeTicket ? (
-            <TicketCard ticket={activeTicket} tickets={myTickets} onSelect={setActiveCode} />
+            <TicketCard
+              key={activeTicket.code}
+              ticket={activeTicket}
+              tickets={myTickets}
+              onSelect={setActiveCode}
+              onCancel={handleCancel}
+              cancelling={cancelling}
+            />
           ) : (
             <Card>
               <CardHead title="Tiket kamu" />
