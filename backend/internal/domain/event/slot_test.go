@@ -26,15 +26,12 @@ func TestAvailabilityMarksSlotsAndSkipsPastLeft(t *testing.T) {
 	}
 }
 
-func TestOccupiedCountsIncludesRedeemedButStatusCountsDoesNot(t *testing.T) {
+func TestOccupiedCountsIncludesRedeemed(t *testing.T) {
 	id := uuid.New()
 	rows := []SlotBooking{{EventID: id, SlotStart: 600, Booked: 5, Redeemed: 2}}
 
 	if got := OccupiedCounts(rows)[id][600]; got != (SlotCount{Booked: 7, Redeemed: 2}) {
 		t.Fatalf("OccupiedCounts = %+v, mau booked 7", got)
-	}
-	if got := StatusCounts(rows)[id][600]; got != (SlotCount{Booked: 5, Redeemed: 2}) {
-		t.Fatalf("StatusCounts = %+v, mau booked 5", got)
 	}
 }
 

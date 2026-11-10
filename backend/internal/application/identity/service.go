@@ -35,6 +35,8 @@ func (s *Service) Login(ctx context.Context, email, password string) (user.User,
 	u, err := s.users.GetByEmail(ctx, strings.TrimSpace(email))
 	if err != nil {
 		if errors.Is(err, user.ErrNotFound) {
+			// Tetap memeriksa kata sandi supaya waktu responsnya sama dengan email terdaftar.
+			s.passwords.Matches("", password)
 			return user.User{}, "", ErrInvalidCredentials
 		}
 		return user.User{}, "", err

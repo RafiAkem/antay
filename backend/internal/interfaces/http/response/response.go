@@ -1,6 +1,7 @@
 package response
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -98,6 +99,7 @@ func JSON(w http.ResponseWriter, r *http.Request, status int, message string, da
 }
 
 func NoContent(w http.ResponseWriter) {
+	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -121,7 +123,14 @@ func FailDetails(w http.ResponseWriter, r *http.Request, status int, code, messa
 // nama field langsung terlihat alih-alih diam-diam diabaikan.
 func Decode(w http.ResponseWriter, r *http.Request, dst any) error {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-	dec := json.NewDecoder(r.Body)
+	raw, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	if hasEscapedNUL(raw) {
+		return errors.New("body tidak boleh berisi karakter NUL")
+	}
+	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(dst); err != nil {
 		return err
@@ -130,6 +139,12 @@ func Decode(w http.ResponseWriter, r *http.Request, dst any) error {
 		return errors.New("body hanya boleh berisi satu objek JSON")
 	}
 	return nil
+}
+
+// Postgres tidak bisa menyimpan NUL, jadi ditolak di sini daripada jadi 500.
+// Pasangan `\\` dibuang dulu supaya teks biasa berisi garis miring tidak ikut kena.
+func hasEscapedNUL(raw []byte) bool {
+	return bytes.Contains(bytes.ReplaceAll(raw, []byte(`\\`), nil), []byte(`\u0000`))
 }
 
 func BadRequest(w http.ResponseWriter, r *http.Request, message string) {

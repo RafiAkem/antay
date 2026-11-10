@@ -1,5 +1,5 @@
 -- name: EventTicketCounts :one
-SELECT count(*)::int AS registered,
+SELECT count(*) FILTER (WHERE status <> 'cancelled')::int AS registered,
        count(*) FILTER (WHERE status = 'redeemed')::int AS redeemed,
        count(*) FILTER (WHERE status = 'booked')::int AS pending,
        count(*) FILTER (WHERE status = 'cancelled')::int AS cancelled
@@ -16,7 +16,7 @@ WHERE t.event_id = sqlc.arg(event_id)
 
 -- name: EventSlotStats :many
 SELECT slot_start,
-       count(*)::int AS registered,
+       count(*) FILTER (WHERE status <> 'cancelled')::int AS registered,
        count(*) FILTER (WHERE status = 'redeemed')::int AS redeemed
 FROM tickets
 WHERE event_id = sqlc.arg(event_id)
@@ -27,7 +27,7 @@ ORDER BY slot_start;
 SELECT e.id, e.code_prefix, e.name, e.place, e.event_date, e.open_minutes,
        e.close_minutes, e.slot_minutes, e.slot_capacity, e.counter_count,
        e.service_seconds, e.waiting_count, e.status,
-       count(t.id)::int AS registered,
+       count(t.id) FILTER (WHERE t.status <> 'cancelled')::int AS registered,
        count(t.id) FILTER (WHERE t.status = 'redeemed')::int AS redeemed
 FROM events e
 LEFT JOIN tickets t ON t.event_id = e.id

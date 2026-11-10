@@ -27,7 +27,7 @@ export const INITIAL_VALUES: EventFormValues = {
 }
 
 export function toMinutes(value: string): number | null {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim())
+  const match = /^(\d{2}):(\d{2})$/.exec(value.trim())
   if (!match) return null
   const hour = Number(match[1])
   const minute = Number(match[2])
