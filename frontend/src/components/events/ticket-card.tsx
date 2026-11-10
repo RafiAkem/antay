@@ -44,9 +44,8 @@ function statusOf(ticket: Ticket, past: boolean): { tone: StatusTone; label: str
 
 export function TicketCard({ ticket, tickets, onSelect, onCancel, cancelling }: Props) {
   const status = statusOf(ticket, ticket.slotEnd <= clockNow())
-  // Kode yang sedang dikonfirmasi; berganti tiket otomatis menutup konfirmasi.
-  const [confirmCode, setConfirmCode] = useState<string | null>(null)
-  const confirming = confirmCode === ticket.code
+  // Halaman memasang key={ticket.code}, jadi berganti tiket membuat kartu baru dan menutup konfirmasi.
+  const [confirming, setConfirming] = useState(false)
   return (
     <div className="grid gap-4">
       <div className="overflow-hidden rounded-[var(--radius-card)] border border-border-soft bg-surface">
@@ -97,7 +96,8 @@ export function TicketCard({ ticket, tickets, onSelect, onCancel, cancelling }: 
             {confirming ? (
               <>
                 <span className="mr-auto">Batalkan tiket ini? Tempatnya akan dilepas untuk orang lain.</span>
-                <Button size="small" variant="ghost" onClick={() => setConfirmCode(null)} disabled={cancelling}>
+                {/* Tombol pemicu hilang saat konfirmasi terbuka, jadi fokus dipindah ke pilihan yang aman. */}
+                <Button size="small" variant="ghost" onClick={() => setConfirming(false)} disabled={cancelling} autoFocus>
                   Tidak
                 </Button>
                 <Button size="small" variant="danger" onClick={() => onCancel(ticket.code)} disabled={cancelling}>
@@ -105,7 +105,7 @@ export function TicketCard({ ticket, tickets, onSelect, onCancel, cancelling }: 
                 </Button>
               </>
             ) : (
-              <Button size="small" variant="ghost" onClick={() => setConfirmCode(ticket.code)}>
+              <Button size="small" variant="ghost" onClick={() => setConfirming(true)}>
                 Batalkan tiket
               </Button>
             )}
