@@ -1,4 +1,5 @@
 <title>Antay ERD</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -128,12 +129,12 @@ tr.fkrow td { background: var(--tint-50); }
             <div class="eh"><span class="tn">events</span><span class="tc" data-id="satu event di satu hari">one event on one day</span></div>
             <table>
               <tr id="events-id"><td class="key"><span class="tag pk">PK</span></td><td class="col">id</td><td class="ty">uuid</td></tr>
-              <tr><td class="key"><span class="tag uk">UK</span></td><td class="col">code_prefix</td><td class="ty">text<small data-id="2 huruf kapital, unik per tanggal">2 capitals, unique per date</small></td></tr>
+              <tr><td class="key"><span class="tag uk">UK</span></td><td class="col">code_prefix</td><td class="ty">text<small data-id="2 huruf kapital; unik berpasangan dengan event_date, bukan sendiri">2 capitals; unique as a pair with event_date, not on its own</small></td></tr>
               <tr><td class="key"></td><td class="col">name</td><td class="ty">text</td></tr>
               <tr><td class="key"></td><td class="col">place</td><td class="ty">text</td></tr>
               <tr><td class="key"></td><td class="col">item</td><td class="ty">text</td></tr>
               <tr><td class="key"></td><td class="col">requirement</td><td class="ty">text</td></tr>
-              <tr><td class="key"><span class="tag uk">UK</span></td><td class="col">event_date</td><td class="ty">text<small>YYYY-MM-DD</small></td></tr>
+              <tr><td class="key"><span class="tag uk">UK</span></td><td class="col">event_date</td><td class="ty">text<small data-id="YYYY-MM-DD; unik berpasangan dengan code_prefix">YYYY-MM-DD; unique as a pair with code_prefix</small></td></tr>
               <tr><td class="key"></td><td class="col">open_minutes</td><td class="ty">integer<small>0–1439</small></td></tr>
               <tr><td class="key"></td><td class="col">close_minutes</td><td class="ty">integer<small data-id="setelah open">after open</small></td></tr>
               <tr><td class="key"></td><td class="col">slot_minutes</td><td class="ty">integer<small>10–120</small></td></tr>
