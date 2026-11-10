@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -40,6 +41,47 @@ func TestRateLimitBlocksAfterMaxThenResets(t *testing.T) {
 	}
 }
 
+func TestRateLimitSkipsUnknownIP(t *testing.T) {
+	l := NewRateLimit(1, 10*time.Minute)
+	h := l.Middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
+	for i := 0; i < 3; i++ {
+		req := httptest.NewRequest(http.MethodPost, "/public/v1/tickets", nil)
+		req.RemoteAddr = "127.0.0.1:5000" // proxy yang lupa mengirim X-Real-IP
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("request ke-%d tanpa IP asli harus lolos, dapat %d", i+1, rec.Code)
+		}
+	}
+	if len(l.hits) != 0 {
+		t.Fatalf("IP kosong tidak boleh dicatat, ada %d", len(l.hits))
+	}
+}
+
+func TestRateLimitBoundsTrackedClients(t *testing.T) {
+	now := time.Date(2026, 11, 9, 10, 0, 0, 0, time.UTC)
+	l := NewRateLimit(5, 10*time.Minute)
+	l.now = func() time.Time { return now }
+
+	l.allow("old")
+	now = now.Add(10 * time.Minute)
+	for i := 1; i < maxTrackedClients; i++ {
+		l.allow(strconv.Itoa(i))
+	}
+	l.allow("baru")
+	if _, ok := l.hits["old"]; ok {
+		t.Fatal("jendela yang sudah habis harus dibuang saat peta penuh")
+	}
+	if len(l.hits) != maxTrackedClients {
+		t.Fatalf("mau %d entri, dapat %d", maxTrackedClients, len(l.hits))
+	}
+
+	l.allow("satu-lagi")
+	if len(l.hits) != 1 {
+		t.Fatalf("peta penuh dengan jendela aktif harus direset, tersisa %d", len(l.hits))
+	}
+}
+
 func TestClientIP(t *testing.T) {
 	cases := []struct {
 		name, remote, realIP, xff, want string
@@ -48,7 +90,10 @@ func TestClientIP(t *testing.T) {
 		{"klien langsung memalsukan header", "203.0.113.5:4000", "1.2.3.4", "1.2.3.4", "203.0.113.5"},
 		{"nginx dengan X-Real-IP", "127.0.0.1:5000", "203.0.113.9", "", "203.0.113.9"},
 		{"nginx dengan X-Forwarded-For", "127.0.0.1:5000", "", "1.2.3.4, 203.0.113.9", "203.0.113.9"},
+		{"nginx dengan kedua header, X-Real-IP menang", "127.0.0.1:5000", "203.0.113.9", "198.51.100.7", "203.0.113.9"},
+		{"proxy di jaringan privat (container lain)", "172.18.0.2:5000", "203.0.113.9", "", "203.0.113.9"},
 		{"proxy tanpa header", "127.0.0.1:5000", "", "", ""},
+		{"proxy privat tanpa header", "10.0.0.4:5000", "", "", ""},
 		{"IPv6 dipotong ke /64", "[2001:db8:1:2:aaaa::1]:4000", "", "", "2001:db8:1:2::/64"},
 	}
 	for _, c := range cases {

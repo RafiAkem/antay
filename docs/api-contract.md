@@ -54,7 +54,7 @@ apa adanya.
 | 404 | event, kode tiket, atau path tidak ada |
 | 409 | tiket sudah ditukar, sudah dibatalkan, atau milik event lain; prefix event bentrok |
 | 422 | format benar tapi tidak lolos aturan bisnis (slot penuh, event sudah tutup, KTP belum dicentang, jam di luar slot) |
-| 429 | `RATE_LIMITED`, terlalu banyak request dari satu IP; header `Retry-After` berisi detik tunggu |
+| 429 | `RATE_LIMITED`, terlalu banyak request dari satu IP (IPv6 dihitung per /64); header `Retry-After` berisi detik tunggu |
 | 500 | kesalahan tak terduga |
 | 503 | database tidak siap (hanya endpoint health) |
 
@@ -87,8 +87,9 @@ Kode khusus per endpoint ditulis di bagian masing-masing.
     terdaftar
   `429 RATE_LIMITED` setelah 10 percobaan dari satu IP dalam 10 menit.
 - Batas per IP membaca `X-Real-IP` atau entri terakhir `X-Forwarded-For` hanya bila
-  koneksi datang dari loopback (nginx di mesin yang sama). Tanpa header itu di balik
-  proxy, batas dilewati supaya semua pengunjung tidak berbagi satu kuota.
+  koneksi datang dari loopback atau jaringan privat (nginx di mesin yang sama atau
+  di jaringan internal). Tanpa header itu di balik proxy, batas dilewati supaya
+  semua pengunjung tidak berbagi satu kuota.
 - `POST /operational/v1/auth/logout` → `204`, cookie dihapus.
 - `GET /operational/v1/auth/me` → `200` `{ "user": User }`, `401` bila tanpa sesi
   atau akun sudah nonaktif.
@@ -170,7 +171,7 @@ lalu 4 karakter dari `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (tanpa I, L, O, 0, 1).
 - `422 SLOT_INVALID` bila `slotStart` bukan batas slot event
 - `422 SLOT_PAST` bila slot sudah selesai
 - `422 SLOT_FULL` bila kuota habis (`details` menunjuk `slotStart`)
-- `429 RATE_LIMITED` bila satu IP sudah memesan atau membatalkan 30 kali dalam 10 menit
+- `429 RATE_LIMITED` bila satu IP sudah mengirim 30 request pesan atau batal dalam 10 menit, termasuk yang gagal
 
 ### `POST /public/v1/tickets/{code}/cancellations`
 

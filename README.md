@@ -103,7 +103,7 @@ Perintah lain: `make seed`, `make api`, `make web`, `make build`, `make test`, `
 API membatasi request per IP, jadi nginx harus meneruskan IP asli pengunjung. Tanpa header ini batas dilewati sama sekali (lebih aman daripada semua pengunjung berbagi satu kuota), dan tiket bisa dipesan tanpa batas:
 
 ```nginx
-location ~ ^/(public|operational|analytics|csrf|health) {
+location ~ ^/(public|operational|analytics|csrf|health/(live|ready|startup)) {
     proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -111,7 +111,7 @@ location ~ ^/(public|operational|analytics|csrf|health) {
 }
 ```
 
-Header itu hanya dipercaya bila koneksi datang dari loopback, jadi API dan nginx harus di mesin yang sama. Di produksi juga set `COOKIE_SECURE=true` karena situsnya HTTPS.
+Header itu hanya dipercaya bila koneksi datang dari loopback atau jaringan privat (`10.x`, `172.16–31.x`, `192.168.x`, `fc00::/7`), jadi nginx boleh di mesin yang sama atau di container/host internal, asal port API tidak dibuka langsung ke jaringan privat yang dipakai pengunjung. `/health/dependencies` sengaja tidak diteruskan karena hanya untuk internal. Di produksi juga set `COOKIE_SECURE=true` karena situsnya HTTPS.
 
 ## Keputusan yang perlu diketahui
 
@@ -120,7 +120,7 @@ Header itu hanya dipercaya bila koneksi datang dari loopback, jadi API dan nginx
 - Kuota slot dicek di dalam transaksi dengan `SELECT ... FOR UPDATE` pada baris event, supaya dua pemesan bersamaan tidak melewati kapasitas.
 - Pengunjung tidak punya akun. Hanya kode tiket yang disimpan di perangkat, detailnya selalu diambil dari server.
 - Karena tanpa akun, memegang kode berarti pemilik tiket. Pengunjung bisa membatalkan tiket yang belum ditukar (`POST /public/v1/tickets/{code}/cancellations`); tiket `cancelled` tidak dihitung ke kuota, jadi tempatnya langsung bisa dipesan lagi.
-- Pesan dan batal tiket dibatasi 30 request per 10 menit per IP, login 10 per 10 menit (`429 RATE_LIMITED` + `Retry-After`). Batasnya longgar karena pengunjung di WiFi mal atau CGNAT operator berbagi satu IP. Hitungannya di memori satu proses, jadi kalau API dijalankan lebih dari satu instance, pindahkan ke Postgres atau Redis.
+- Pesan dan batal tiket dibatasi 30 request per 10 menit per IP (IPv6 per /64), login 10 per 10 menit (`429 RATE_LIMITED` + `Retry-After`). Request yang gagal ikut dihitung. Batasnya longgar karena pengunjung di WiFi mal atau CGNAT operator berbagi satu IP. Hitungannya di memori satu proses, jadi kalau API dijalankan lebih dari satu instance, pindahkan ke Postgres atau Redis.
 - Sesi petugas: JWT RS256 berumur pendek di cookie `HttpOnly; SameSite=Strict`, plus token CSRF double submit untuk semua tulis.
 - Antrean dihitung manual oleh petugas di versi ini. Kamera dan AI (COCO-SSD + Jev) dari prototipe belum dibawa.
 - Grafik dasbor digambar dengan SVG biasa, tanpa library chart.
