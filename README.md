@@ -118,7 +118,7 @@ Header itu hanya dipercaya bila koneksi datang dari loopback atau jaringan priva
 - Semua primary key UUID (`gen_random_uuid()`).
 - Jam slot disimpan sebagai menit sejak tengah malam. Acara berjalan satu hari di satu zona waktu, jadi aritmetika slot bebas masalah zona waktu. API tetap mengirim `"HH:MM"`.
 - Kuota slot dicek di dalam transaksi dengan `SELECT ... FOR UPDATE` pada baris event, supaya dua pemesan bersamaan tidak melewati kapasitas.
-- Pengunjung tidak punya akun. Hanya kode tiket yang disimpan di perangkat, detailnya selalu diambil dari server.
+- Pengunjung tidak punya akun. Hanya kode tiket dan id event-nya yang disimpan di perangkat, detailnya selalu diambil dari server.
 - Karena tanpa akun, memegang kode berarti pemilik tiket. Pengunjung bisa membatalkan tiket yang belum ditukar (`POST /public/v1/tickets/{code}/cancellations`); tiket `cancelled` tidak dihitung ke kuota, jadi tempatnya langsung bisa dipesan lagi.
 - Pesan dan batal tiket dibatasi 30 request per 10 menit per IP (IPv6 per /64), login 10 per 10 menit (`429 RATE_LIMITED` + `Retry-After`). Request yang gagal ikut dihitung. Batasnya longgar karena pengunjung di WiFi mal atau CGNAT operator berbagi satu IP. Hitungannya di memori satu proses, jadi kalau API dijalankan lebih dari satu instance, pindahkan ke Postgres atau Redis.
 - Sesi petugas: JWT RS256 berumur pendek di cookie `HttpOnly; SameSite=Strict`, plus token CSRF double submit untuk semua tulis.

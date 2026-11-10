@@ -1,4 +1,5 @@
 <title>Antay System Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -81,7 +82,7 @@ svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2;
       <div>
         <div class="eyebrow">Antay · Bandung Build Challenge 2026 · Summarecon Mall Bandung</div>
         <h1 data-id="Satu aplikasi web untuk pengunjung, petugas loket, dan admin mal, satu API Go, dan satu database">One web app for visitors, counter staff and mall admins, one Go API, and one database</h1>
-        <p class="lede" data-id="Pengunjung memesan slot jam datang di ponsel dan mendapat kode pendek. Petugas menukar kode itu di loket, dan papan di TV menampilkan antrean serta perkiraan waktu tunggu. Semua layar memakai build React yang sama di balik nginx, semua permintaan masuk ke satu proses Go, dan semua tiket serta event tersimpan di PostgreSQL.">Visitors book an arrival slot on their phone and get a short code. Staff redeem that code at the counter, and the TV board shows the queue and the expected wait. Every screen is the same React build behind nginx, every request goes to one Go process, and every ticket and event lives in PostgreSQL.</p>
+        <p class="lede" data-id="Pengunjung memesan slot jam datang di ponsel dan mendapat kode pendek. Petugas menukar kode itu di loket, dan papan di TV menampilkan antrean serta perkiraan waktu tunggu. Semua layar memakai build React yang sama di balik nginx, semua permintaan API masuk ke satu proses Go, dan semua tiket serta event tersimpan di PostgreSQL.">Visitors book an arrival slot on their phone and get a short code. Staff redeem that code at the counter, and the TV board shows the queue and the expected wait. Every screen is the same React build behind nginx, every API request goes to one Go process, and every ticket and event lives in PostgreSQL.</p>
       </div>
       <div class="side">
         <div class="lang" role="group" aria-label="Language / Bahasa">
@@ -89,7 +90,7 @@ svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2;
           <button type="button" id="lang-id" data-lang="id" aria-pressed="false">ID</button>
         </div>
         <div class="legend">
-          <div><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="#1747e6" stroke-width="2"/></svg><span data-id="Jalur utama, berurutan">The main path, in order</span></div>
+          <div><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="#1747e6" stroke-width="2"/></svg><span id="main-path-label" data-id="Jalur utama, berurutan">The main path, in order</span></div>
           <div><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="#9aa3b2" stroke-width="1.5"/></svg><span data-id="Lalu lintas internal">Our own traffic</span></div>
           <div><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="#9aa3b2" stroke-width="1.5" stroke-dasharray="4 3"/></svg><span data-id="Layanan luar, atau belum dibuat">Outside service, or not built yet</span></div>
           <div><span class="sw"></span><span data-id="Bagian yang kami jalankan">A part we run</span></div>
@@ -126,7 +127,7 @@ svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2;
           </div>
           <div class="node" id="counter" style="grid-column:1;grid-row:4">
             <div class="k" data-id="Petugas loket">Counter staff</div>
-            <div class="t">Loket</div>
+            <div class="t" data-id="Loket">Counter desk</div>
             <code>/counter</code>
             <ul>
               <li data-id="Cek kode, cocokkan KTP, serahkan item">Check code, match the KTP, hand over the item</li>
@@ -149,7 +150,7 @@ svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2;
             <div class="t" data-id="Kode di ponsel">Codes on the phone</div>
             <code data-id="penyimpanan browser">browser storage</code>
             <ul>
-              <li data-id="Hanya kode tiket yang disimpan">Only ticket codes are kept</li>
+              <li data-id="Hanya kode tiket dan id event-nya yang disimpan">Only ticket codes and their event IDs are kept</li>
               <li data-id="Detail selalu diambil dari server">Details always come from the server</li>
             </ul>
           </div>
@@ -321,12 +322,12 @@ svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2;
       </div>
     </div>
 
-    <ol class="steps" aria-label="The main path">
+    <ol class="steps" aria-labelledby="main-path-label">
       <li><b>1</b><span data-id="Pengunjung memilih slot jam datang. Ponsel mengirim <code>POST /public/v1/tickets</code>.">A visitor picks an arrival slot. The phone sends <code>POST /public/v1/tickets</code>.</span></li>
       <li><b>2</b><span data-id="nginx meneruskan path API ke proses Go. Path lain mendapat build React.">nginx passes the API paths to the Go process. Every other path gets the React build.</span></li>
       <li><b>3</b><span data-id="Booking mengecek nama (3 sampai 60 karakter) dan memastikan slotnya ada.">Booking checks the name (3 to 60 characters) and that the slot exists.</span></li>
       <li><b>4</b><span data-id="Satu transaksi mengunci baris event, mengecek kuota slot, lalu menyimpan tiket. Kode yang bentrok dicoba ulang, paling banyak 5 kali.">One transaction locks the event row, checks the slot quota and saves the ticket. A clashing code is retried, up to 5 times.</span></li>
-      <li><b>5</b><span data-id="Ponsel hanya menyimpan kode dan menampilkannya bersama QR. Detailnya diambil ulang setiap kali.">The phone keeps only the code and shows it with a QR. Details are fetched again each time.</span></li>
+      <li><b>5</b><span data-id="Ponsel hanya menyimpan kode (dan id event-nya) dan menampilkannya bersama QR. Detailnya diambil ulang setiap kali.">The phone keeps only the code (and its event ID) and shows it with a QR. Details are fetched again each time.</span></li>
       <li><b>6</b><span data-id="Di loket, petugas memasukkan kode, mencocokkan KTP, lalu menukar tiket. Tiket ditandai terlalu awal, tepat waktu, atau terlambat, dan 15 menit sebelum slot dihitung tepat waktu.">At the counter, staff enter the code, match the KTP and redeem. The ticket is marked early, on time or late, and the 15 minutes before a slot count as on time.</span></li>
       <li><b>7</b><span data-id="Papan diperbarui tiap 10 detik dan menampilkan waktu tunggu dari jumlah antrean yang dijaga petugas.">The board refreshes every 10 s and shows the wait from the queue count that staff keep up to date.</span></li>
     </ol>
