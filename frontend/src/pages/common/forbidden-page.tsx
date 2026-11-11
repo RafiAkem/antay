@@ -1,35 +1,46 @@
-import { Link } from 'react-router-dom'
-import { Card } from '@/components/ui/card'
-import { Pill } from '@/components/ui/pill'
+import { LinkButton } from '@/components/admin/shared/link-button'
+import { homeForRole } from '@/components/admin/shared/role-home'
+import { Container } from '@/components/ui/container'
+import { Section } from '@/components/ui/section'
+import { Heading, Paragraph } from '@/components/ui/text'
+import { useSession } from '@/lib/session'
+import type { Role } from '@/types/api'
 
-// Dipakai sebagai guard konten di dalam AppLayout, jadi tidak boleh memaksa tinggi layar penuh.
+const ROLE_NAME: Record<Role, string> = {
+  staff: 'petugas loket',
+  organizer: 'penyelenggara',
+  admin: 'admin mal',
+}
+
+// Dipakai sebagai guard konten di dalam AppLayout dan sebagai rute /403,
+// jadi tidak memaksa tinggi layar penuh.
 export function ForbiddenPage() {
+  const { user } = useSession()
+
   return (
-    <Card className="mx-auto w-full max-w-lg">
-      <div className="grid justify-items-start gap-3">
-        <Pill tone="bad">403</Pill>
-        <div className="grid gap-1">
-          <h1 className="text-lg font-semibold">Tidak punya akses ke halaman ini</h1>
-          <p className="text-sm leading-5 text-muted">
-            Sesi petugas yang sedang aktif tidak punya peran untuk membuka halaman ini. Biasanya ini
-            terjadi karena akun yang dipakai bukan akun loket atau admin mal yang berhak.
+    <Section>
+      <Container size="narrow">
+        <div className="grid justify-items-start gap-4">
+          <p aria-hidden="true" className="font-mono text-[56px] leading-none font-bold text-tint-200">
+            403
           </p>
+          <div className="grid gap-1.5">
+            <Heading level={1}>Halaman ini bukan untuk akunmu</Heading>
+            <Paragraph tone="muted">
+              {user
+                ? `Kamu masuk sebagai ${ROLE_NAME[user.role]} (${user.email}). Halaman ini hanya bisa dibuka peran lain.`
+                : 'Sesi yang aktif tidak punya peran untuk membuka halaman ini.'}{' '}
+              Kalau memang butuh akses, minta admin mal mengatur akunmu.
+            </Paragraph>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {user ? <LinkButton to={homeForRole(user.role)}>Ke halaman kerja saya</LinkButton> : null}
+            <LinkButton to="/login" variant="ghost">
+              Masuk dengan akun lain
+            </LinkButton>
+          </div>
         </div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <Link
-            to="/events"
-            className="inline-flex h-[38px] items-center justify-center rounded-[var(--radius-control)] bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-accent-ink"
-          >
-            Lihat daftar event
-          </Link>
-          <Link
-            to="/login"
-            className="inline-flex h-[38px] items-center justify-center rounded-[var(--radius-control)] border border-control bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:bg-raised"
-          >
-            Masuk dengan akun lain
-          </Link>
-        </div>
-      </div>
-    </Card>
+      </Container>
+    </Section>
   )
 }
