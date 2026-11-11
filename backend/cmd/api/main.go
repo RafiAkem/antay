@@ -12,17 +12,24 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/RafiAkem/antay/backend/internal/application/accounts"
 	"github.com/RafiAkem/antay/backend/internal/application/booking"
 	"github.com/RafiAkem/antay/backend/internal/application/catalog"
 	"github.com/RafiAkem/antay/backend/internal/application/counter"
+	"github.com/RafiAkem/antay/backend/internal/application/customeraccount"
+	"github.com/RafiAkem/antay/backend/internal/application/eventadmin"
 	"github.com/RafiAkem/antay/backend/internal/application/identity"
+	mediaapp "github.com/RafiAkem/antay/backend/internal/application/media"
 	"github.com/RafiAkem/antay/backend/internal/application/reporting"
 	"github.com/RafiAkem/antay/backend/internal/application/scheduling"
+	appseating "github.com/RafiAkem/antay/backend/internal/application/seating"
+	"github.com/RafiAkem/antay/backend/internal/application/storefront"
 	"github.com/RafiAkem/antay/backend/internal/domain/shared"
 	"github.com/RafiAkem/antay/backend/internal/infrastructure/config"
 	"github.com/RafiAkem/antay/backend/internal/infrastructure/postgres"
 	"github.com/RafiAkem/antay/backend/internal/infrastructure/postgres/store"
 	"github.com/RafiAkem/antay/backend/internal/infrastructure/security"
+	"github.com/RafiAkem/antay/backend/internal/infrastructure/storage"
 	httpapi "github.com/RafiAkem/antay/backend/internal/interfaces/http"
 	"github.com/RafiAkem/antay/backend/internal/interfaces/http/handler"
 	"github.com/RafiAkem/antay/backend/internal/interfaces/http/middleware"
@@ -93,7 +100,7 @@ func run(log *slog.Logger) error {
 // buildHandler adalah composition root: repository infrastruktur dirangkai ke
 // service application, lalu service ke handler HTTP.
 func buildHandler(cfg config.Config, pool *pgxpool.Pool, log *slog.Logger) (http.Handler, error) {
-	tokens, err := security.NewTokenService(cfg.JWTPrivatePEM, cfg.SessionTTL)
+	tokens, err := security.NewTokenService(cfg.JWTPrivatePEM, cfg.SessionTTL, cfg.CustomerSessionTTL)
 	if err != nil {
 		return nil, err
 	}
@@ -103,10 +110,16 @@ func buildHandler(cfg config.Config, pool *pgxpool.Pool, log *slog.Logger) (http
 	events := postgres.NewEventRepo(q)
 	tickets := postgres.NewTicketRepo(pool, q)
 	users := postgres.NewUserRepo(q)
-	clock := shared.Clock(time.Now)
+	// Jam selalu Asia/Jakarta, apa pun zona waktu servernya.
+	clock := shared.NewJakartaClock()
+	customerSessions := middleware.NewCustomerSessions(tokens, cfg.CookieSecure)
+	disk, err := storage.NewDisk(cfg.UploadDir)
+	if err != nil {
+		return nil, err
+	}
 
 	return httpapi.NewRouter(
-		httpapi.Config{Version: cfg.Version, Log: log, Sessions: sessions},
+		httpapi.Config{Version: cfg.Version, Log: log, Sessions: sessions, CustomerSessions: customerSessions},
 		httpapi.Handlers{
 			Health: handler.NewHealth(pool, cfg.Version),
 			Auth:   handler.NewAuth(identity.New(users, security.Bcrypt{}, tokens), sessions),
@@ -117,6 +130,15 @@ func buildHandler(cfg config.Config, pool *pgxpool.Pool, log *slog.Logger) (http
 			Counter:    handler.NewCounter(counter.New(events, tickets, clock)),
 			Scheduling: handler.NewScheduling(scheduling.New(events, clock)),
 			Reporting:  handler.NewReporting(reporting.New(events, postgres.NewReportingReadModel(q), clock)),
+
+			CustomerAuth: handler.NewCustomerAuth(
+				customeraccount.New(postgres.NewCustomerRepo(q), security.Bcrypt{}, tokens), customerSessions),
+			Accounts:   handler.NewAccounts(accounts.New(postgres.NewAccountsRepo(q), security.Bcrypt{})),
+			Storefront: handler.NewStorefront(storefront.New(postgres.NewStorefrontRepo(q), clock)),
+			EventAdmin: handler.NewEventAdmin(eventadmin.New(postgres.NewEventAdminRepo(pool, q), clock)),
+			Media:      handler.NewMedia(mediaapp.New(postgres.NewMediaRepo(pool, q), disk, cfg.MediaMaxBytes)),
+			MediaFiles: handler.NewMediaFiles(disk),
+			Seating:    handler.NewSeating(appseating.New(postgres.NewSeatingRepo(pool, q))),
 		},
 	), nil
 }
