@@ -1,6 +1,6 @@
 # Antay
 
-*Ngantay mah santai.* Sistem penukaran tiket dan antrean untuk event di Summarecon Mall Bandung. Versi ini menggantikan prototipe satu berkas dengan backend Go, database PostgreSQL, dan frontend React.
+*Ngantri dengan santai.* Sistem penukaran tiket dan antrean untuk event di Summarecon Mall Bandung. Versi ini menggantikan prototipe satu berkas dengan backend Go, database PostgreSQL, dan frontend React.
 
 Prototipe aslinya tetap ada di branch `prototype` (`loket-pintar.html` + `server.mjs`).
 
