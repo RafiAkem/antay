@@ -1,0 +1,122 @@
+[
+  {
+    "file": "newyear-poster.jpg",
+    "event": "newyear",
+    "kind": "poster",
+    "alt": "Kembang api merah meledak di atas panggung konser berlayar besar, penonton mengangkat tangan di depan panggung",
+    "width": 1200,
+    "height": 1200,
+    "credit": "Foto oleh Mat Napo di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/a-crowd-of-people-at-a-concert-E1djnZiPsEA"
+  },
+  {
+    "file": "newyear-gallery-1.jpg",
+    "event": "newyear",
+    "kind": "gallery",
+    "alt": "Siluet penonton merekam panggung yang menyemburkan api di tengah asap jingga",
+    "width": 1600,
+    "height": 1000,
+    "credit": "Foto oleh Nicolás Flor di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/fireworks-explode-over-a-crowded-outdoor-concert-stage-Oh74RFHXbrs"
+  },
+  {
+    "file": "newyear-gallery-2.jpg",
+    "event": "newyear",
+    "kind": "gallery",
+    "alt": "Pancaran kembang api dari atas panggung festival yang megah di depan lautan penonton malam hari",
+    "width": 1600,
+    "height": 1000,
+    "credit": "Foto oleh Jessey Bijl di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/fireworks-launching-on-stage-5Rt5KhbUp5g"
+  },
+  {
+    "file": "runfest-poster.jpg",
+    "event": "runfest",
+    "kind": "poster",
+    "alt": "Rombongan pelari melaju di jalan kota yang dinaungi pohon rindang pada pagi hari",
+    "width": 1200,
+    "height": 1200,
+    "credit": "Foto oleh Joseph Prospere di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/many-runners-start-a-race-on-a-tree-lined-street-RVDf2rcWoJQ"
+  },
+  {
+    "file": "runfest-gallery-1.jpg",
+    "event": "runfest",
+    "kind": "gallery",
+    "alt": "Ratusan peserta lari berkaus kuning memenuhi jalan raya kota",
+    "width": 1600,
+    "height": 1000,
+    "credit": "Foto oleh Miguel A Amutio di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/a-large-crowd-of-people-running-in-a-marathon-race-lY2FgUotLfc"
+  },
+  {
+    "file": "runfest-gallery-2.jpg",
+    "event": "runfest",
+    "kind": "gallery",
+    "alt": "Pelari dengan nomor dada terlihat dari belakang saat berlari bersama di jalan kota",
+    "width": 1600,
+    "height": 1000,
+    "credit": "Foto oleh Miguel A Amutio di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/numerous-runners-competing-in-a-vibrant-street-race-kvykq6Lfz0Q"
+  },
+  {
+    "file": "persib-poster.jpg",
+    "event": "persib",
+    "kind": "poster",
+    "alt": "Tribun stadion gelap dipenuhi cahaya ponsel suporter di bawah layar LED biru",
+    "width": 1200,
+    "height": 1200,
+    "credit": "Foto oleh lesha tuman di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/a-dark-stadium-filled-with-a-crowd-and-bright-lights-LltQTIsNbT8"
+  },
+  {
+    "file": "persib-gallery-1.jpg",
+    "event": "persib",
+    "kind": "gallery",
+    "alt": "Stadion beratap rangka baja penuh penonton saat laga malam, dilihat dari tribun atas",
+    "width": 1600,
+    "height": 1000,
+    "credit": "Foto oleh lcs _vgt di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/a-stadium-filled-with-spectators-during-a-night-game-QPf3S52L8Zc"
+  },
+  {
+    "file": "persib-gallery-2.jpg",
+    "event": "persib",
+    "kind": "gallery",
+    "alt": "Lautan penonton mengangkat tangan dan ponsel sambil bersorak",
+    "width": 1600,
+    "height": 1000,
+    "credit": "Foto oleh CHUTTERSNAP di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/a-large-group-of-people-standing-next-to-each-other-N-99QVVf2CE"
+  },
+  {
+    "file": "mascot-poster.jpg",
+    "event": "mascot",
+    "kind": "poster",
+    "alt": "Dua maskot beruang cokelat menyapa anak-anak bergaun di pelataran berdinding bata",
+    "width": 1200,
+    "height": 1200,
+    "credit": "Foto oleh Bernd Dittrich di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/bear-costumes-before-brick-archway-3R2sS8vlVOI"
+  },
+  {
+    "file": "mascot-gallery-1.jpg",
+    "event": "mascot",
+    "kind": "gallery",
+    "alt": "Maskot kelinci putih berjaket merah memegang tongkat permen di antara pohon cemara berhias",
+    "width": 1600,
+    "height": 1000,
+    "credit": "Foto oleh Kateryna Hliznitsova di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/a-person-in-a-bunny-costume-holding-a-candy-cane-NC2i5PRi0t4"
+  },
+  {
+    "file": "mascot-gallery-2.jpg",
+    "event": "mascot",
+    "kind": "gallery",
+    "alt": "Balita dalam gendongan ibunya menyentuh kostum barongsai merah di acara keluarga",
+    "width": 1600,
+    "height": 1000,
+    "credit": "Foto oleh Howard Weiss di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/a-child-touches-a-vibrant-red-lion-dance-costume-NeTjoUMjv2Y"
+  }
+]
