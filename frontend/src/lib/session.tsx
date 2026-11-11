@@ -14,7 +14,7 @@ const HINT = 'antay-session-hint'
 
 // Hanya halaman yang dijaga yang perlu menanyakan sesi. Selain itu, probe /me
 // hanya menghasilkan 401 yang mengotori console pengunjung.
-const GUARDED_PATHS = ['/counter', '/dashboard', '/403']
+const GUARDED_PATHS = ['/counter', '/dashboard', '/manage', '/admin', '/403']
 
 function needsProbe(): boolean {
   try {
