@@ -9,30 +9,122 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Event struct {
-	ID             uuid.UUID          `json:"id"`
-	CodePrefix     string             `json:"code_prefix"`
-	Name           string             `json:"name"`
-	Place          string             `json:"place"`
-	Item           string             `json:"item"`
-	Requirement    string             `json:"requirement"`
-	EventDate      string             `json:"event_date"`
-	OpenMinutes    int32              `json:"open_minutes"`
-	CloseMinutes   int32              `json:"close_minutes"`
-	SlotMinutes    int32              `json:"slot_minutes"`
-	SlotCapacity   int32              `json:"slot_capacity"`
-	CounterCount   int32              `json:"counter_count"`
-	ServiceSeconds int32              `json:"service_seconds"`
-	WaitingCount   int32              `json:"waiting_count"`
-	Status         string             `json:"status"`
-	CreatedBy      pgtype.UUID        `json:"created_by"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+type Customer struct {
+	ID           uuid.UUID          `json:"id"`
+	Email        string             `json:"email"`
+	PasswordHash string             `json:"password_hash"`
+	Name         string             `json:"name"`
+	Phone        string             `json:"phone"`
+	IsActive     bool               `json:"is_active"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
 
-type SchemaMigration struct {
-	Version   string             `json:"version"`
-	AppliedAt pgtype.Timestamptz `json:"applied_at"`
+type Event struct {
+	ID              uuid.UUID          `json:"id"`
+	CodePrefix      string             `json:"code_prefix"`
+	Name            string             `json:"name"`
+	Place           string             `json:"place"`
+	Item            string             `json:"item"`
+	Requirement     string             `json:"requirement"`
+	EventDate       string             `json:"event_date"`
+	OpenMinutes     int32              `json:"open_minutes"`
+	CloseMinutes    int32              `json:"close_minutes"`
+	SlotMinutes     int32              `json:"slot_minutes"`
+	SlotCapacity    int32              `json:"slot_capacity"`
+	CounterCount    int32              `json:"counter_count"`
+	ServiceSeconds  int32              `json:"service_seconds"`
+	WaitingCount    int32              `json:"waiting_count"`
+	Status          string             `json:"status"`
+	CreatedBy       pgtype.UUID        `json:"created_by"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	OrganizerID     pgtype.UUID        `json:"organizer_id"`
+	Description     string             `json:"description"`
+	PosterUrl       string             `json:"poster_url"`
+	SaleStartsAt    pgtype.Timestamptz `json:"sale_starts_at"`
+	SaleEndsAt      pgtype.Timestamptz `json:"sale_ends_at"`
+	FeeBearer       string             `json:"fee_bearer"`
+	FeePercentBp    int32              `json:"fee_percent_bp"`
+	FeeFlat         int64              `json:"fee_flat"`
+	RejectionReason *string            `json:"rejection_reason"`
+	SubmittedAt     pgtype.Timestamptz `json:"submitted_at"`
+	PublishedAt     pgtype.Timestamptz `json:"published_at"`
+}
+
+type EventImage struct {
+	ID          uuid.UUID          `json:"id"`
+	EventID     uuid.UUID          `json:"event_id"`
+	Kind        string             `json:"kind"`
+	FileName    string             `json:"file_name"`
+	ContentType string             `json:"content_type"`
+	Width       int32              `json:"width"`
+	Height      int32              `json:"height"`
+	SizeBytes   int32              `json:"size_bytes"`
+	Alt         string             `json:"alt"`
+	SortOrder   int32              `json:"sort_order"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type Organizer struct {
+	ID           uuid.UUID          `json:"id"`
+	Name         string             `json:"name"`
+	ContactEmail string             `json:"contact_email"`
+	ContactPhone string             `json:"contact_phone"`
+	IsActive     bool               `json:"is_active"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Package struct {
+	ID         uuid.UUID          `json:"id"`
+	CategoryID uuid.UUID          `json:"category_id"`
+	Name       string             `json:"name"`
+	Pax        int32              `json:"pax"`
+	Price      int64              `json:"price"`
+	Quota      *int32             `json:"quota"`
+	SortOrder  int32              `json:"sort_order"`
+	IsActive   bool               `json:"is_active"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Seat struct {
+	ID            uuid.UUID          `json:"id"`
+	BlockID       uuid.UUID          `json:"block_id"`
+	CategoryID    uuid.UUID          `json:"category_id"`
+	EventID       uuid.UUID          `json:"event_id"`
+	RowLabel      string             `json:"row_label"`
+	Number        int32              `json:"number"`
+	Label         string             `json:"label"`
+	X             int32              `json:"x"`
+	Y             int32              `json:"y"`
+	Status        string             `json:"status"`
+	HeldByOrderID pgtype.UUID        `json:"held_by_order_id"`
+	HeldUntil     pgtype.Timestamptz `json:"held_until"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
+type SeatBlock struct {
+	ID            uuid.UUID          `json:"id"`
+	EventID       uuid.UUID          `json:"event_id"`
+	CategoryID    uuid.UUID          `json:"category_id"`
+	Code          string             `json:"code"`
+	Name          string             `json:"name"`
+	X             int32              `json:"x"`
+	Y             int32              `json:"y"`
+	Rotation      int32              `json:"rotation"`
+	RowCount      int32              `json:"row_count"`
+	SeatsPerRow   int32              `json:"seats_per_row"`
+	Curve         int32              `json:"curve"`
+	SeatSpacing   int32              `json:"seat_spacing"`
+	RowSpacing    int32              `json:"row_spacing"`
+	FirstRowLabel string             `json:"first_row_label"`
+	Numbering     string             `json:"numbering"`
+	AisleAfter    []int32            `json:"aisle_after"`
+	SortOrder     int32              `json:"sort_order"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Ticket struct {
@@ -49,6 +141,18 @@ type Ticket struct {
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
 
+type TicketCategory struct {
+	ID          uuid.UUID          `json:"id"`
+	EventID     uuid.UUID          `json:"event_id"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	SortOrder   int32              `json:"sort_order"`
+	IsSeated    bool               `json:"is_seated"`
+	Quota       *int32             `json:"quota"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
 type User struct {
 	ID           uuid.UUID          `json:"id"`
 	Email        string             `json:"email"`
@@ -57,5 +161,18 @@ type User struct {
 	Role         string             `json:"role"`
 	IsActive     bool               `json:"is_active"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	OrganizerID  pgtype.UUID        `json:"organizer_id"`
+}
+
+type VenueLayout struct {
+	EventID      uuid.UUID          `json:"event_id"`
+	CanvasWidth  int32              `json:"canvas_width"`
+	CanvasHeight int32              `json:"canvas_height"`
+	StageX       int32              `json:"stage_x"`
+	StageY       int32              `json:"stage_y"`
+	StageWidth   int32              `json:"stage_width"`
+	StageHeight  int32              `json:"stage_height"`
+	StageLabel   string             `json:"stage_label"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
