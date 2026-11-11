@@ -6,18 +6,37 @@ info:
     API penukaran tiket dan antrean event. Respons sukses memakai envelope
     `{ message, data, meta }`, kecuali `204` (tanpa body) dan endpoint `/health/*`.
     Respons gagal memakai `{ error }`, kecuali `503` dari `/health/*`. Semua respons
-    mengembalikan `X-Request-ID`; semua respons memakai `Cache-Control: no-store`, kecuali `405` dari router.
+    mengembalikan `X-Request-ID`; semua respons memakai `Cache-Control: no-store`, kecuali `405` dari router
+    dan berkas `/media/{fileName}`.
     Operasi tulis wajib mengirim `X-CSRF-TOKEN` yang sama dengan cookie `antay_csrf`;
     bila tidak, server menjawab `403 CSRF_MISSING` sebelum memeriksa sesi.
-    Body request dibatasi 1 MB, harus berisi tepat satu objek JSON, dan tidak boleh
-    memuat `\u0000`.
+    Body JSON dibatasi 1 MB, harus berisi tepat satu objek JSON, dan tidak boleh
+    memuat `\u0000`. Unggah gambar memakai `multipart/form-data` dengan batas sendiri.
     Setiap endpoint bisa menjawab `500 INTERNAL` untuk kesalahan tak terduga.
+
+    Ada dua sesi terpisah: `antay_session` untuk akun internal (`/operational/v1`,
+    `/analytics/v1`) dan `antay_customer_session` untuk pembeli (`/customer/v1`).
+    JWT keduanya beda audiens, jadi menukar cookie tetap `401`. Role internal:
+    `staff`, `admin`, `organizer`; admin lolos semua cek role. Rute loket butuh
+    `staff`, rute `/operational/v1/manage` butuh `organizer`, akun dan analytics
+    butuh `admin`. Data milik penyelenggara lain dijawab `404`, bukan `403`.
+    Id di path yang bukan UUID juga dijawab `404`.
 servers:
   - url: http://localhost:8080
     description: Lokal
 tags:
   - name: public
+  - name: customer
+    description: Akun pembeli dan hitung harga, sesi `antay_customer_session`.
   - name: operational
+  - name: manage
+    description: Kelola event, kategori, paket, dan alur status (organizer atau admin).
+  - name: media
+    description: Poster dan galeri event, serta berkas publik `/media`.
+  - name: seating
+    description: Denah kursi berbasis blok.
+  - name: accounts
+    description: Penyelenggara dan akun internal (admin).
   - name: analytics
   - name: system
 
@@ -112,20 +131,29 @@ paths:
   /public/v1/events:
     get:
       tags: [public]
-      summary: Daftar event open hari ini
+      summary: Katalog event yang dijual
+      description: >
+        Dilayani katalog versi 2 dan tetap membawa semua field `Event` versi 1
+        (termasuk `slots`). Isinya event `published` dengan tanggal hari ini atau
+        nanti yang penjualannya belum berakhir, urut tanggal lalu nama. Event yang
+        belum mulai dijual tetap tampil dengan `onSale: false`.
       operationId: listPublicEvents
       security: []
       responses:
         "200":
-          description: Sudah termasuk slot dan sisa kuota.
+          description: Sudah termasuk slot, sisa kuota, dan data jualan.
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/EventListEnvelope" }
+              schema: { $ref: "#/components/schemas/CatalogEventListEnvelope" }
 
   /public/v1/events/{eventId}:
     get:
       tags: [public]
-      summary: Detail event open
+      summary: Detail katalog event
+      description: >
+        Dilayani katalog versi 2, semua field versi 1 tetap ada. Ditambah kategori
+        (hanya paket aktif) dan galeri. Event `published` yang jualannya sudah
+        selesai tetap bisa dibuka, cuma `onSale`-nya false.
       operationId: getPublicEvent
       security: []
       parameters:
@@ -135,7 +163,27 @@ paths:
           description: Event ditemukan.
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/EventEnvelope" }
+              schema: { $ref: "#/components/schemas/CatalogEventDetailEnvelope" }
+        "404":
+          $ref: "#/components/responses/Error404"
+
+  /public/v1/events/{eventId}/seat-map:
+    get:
+      tags: [public, seating]
+      summary: Denah kursi untuk pembeli
+      description: >
+        Hanya event `published`. Status kursi `held` dan `sold` disatukan jadi
+        `taken`. Event tanpa layout tersimpan mendapat layout bawaan.
+      operationId: getPublicSeatMap
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Layout, blok, dan kursi.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicSeatMapEnvelope" }
         "404":
           $ref: "#/components/responses/Error404"
 
@@ -236,7 +284,7 @@ paths:
   /operational/v1/auth/login:
     post:
       tags: [operational]
-      summary: Masuk sebagai petugas atau admin
+      summary: Masuk sebagai petugas, admin, atau penyelenggara
       operationId: login
       security:
         - csrfHeader: []
@@ -302,7 +350,8 @@ paths:
   /operational/v1/events:
     get:
       tags: [operational]
-      summary: Semua event hari ini
+      summary: Semua event hari ini (staff)
+      description: Rute loket butuh role `staff` (atau admin); organizer mendapat `403`.
       operationId: listEvents
       security:
         - cookieAuth: []
@@ -314,9 +363,14 @@ paths:
               schema: { $ref: "#/components/schemas/EventListEnvelope" }
         "401":
           $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
     post:
       tags: [operational]
-      summary: Buat event (admin)
+      summary: Buat event versi 1 (admin)
+      description: >
+        Event untuk hari ini, langsung berstatus `published`, tanpa penyelenggara.
+        Untuk event dengan kategori dan periode jual, pakai `/operational/v1/manage/events`.
       operationId: createEvent
       security:
         - cookieAuth: []
@@ -367,6 +421,8 @@ paths:
           $ref: "#/components/responses/Error400"
         "401":
           $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
         "404":
           $ref: "#/components/responses/Error404"
 
@@ -426,6 +482,8 @@ paths:
           $ref: "#/components/responses/Error400"
         "401":
           $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
         "404":
           $ref: "#/components/responses/Error404"
 
@@ -503,13 +561,1255 @@ paths:
         "403":
           $ref: "#/components/responses/Error403"
 
+  /media/{fileName}:
+    get:
+      tags: [media]
+      summary: Berkas gambar publik
+      description: >
+        Bukan JSON. Juga melayani `HEAD`, `Range` (206), dan `If-Modified-Since` (304).
+        Nama yang tidak cocok pola selalu `404` dalam format error JSON.
+      operationId: getMediaFile
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/FileName"
+      responses:
+        "200":
+          description: Isi berkas.
+          headers:
+            Content-Type:
+              description: Sesuai ekstensi.
+              schema: { type: string, enum: [image/jpeg, image/png, image/webp] }
+            Cache-Control:
+              description: Aman di-cache selamanya karena nama berkas acak.
+              schema: { type: string, example: "public, max-age=31536000, immutable" }
+            X-Content-Type-Options:
+              schema: { type: string, example: nosniff }
+            Last-Modified:
+              schema: { type: string }
+          content:
+            image/jpeg:
+              schema: { type: string, contentMediaType: image/jpeg }
+            image/png:
+              schema: { type: string, contentMediaType: image/png }
+            image/webp:
+              schema: { type: string, contentMediaType: image/webp }
+        "404":
+          $ref: "#/components/responses/Error404"
+
+  /customer/v1/auth/register:
+    post:
+      tags: [customer]
+      summary: Daftar akun pembeli
+      operationId: customerRegister
+      security:
+        - csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CustomerRegisterRequest" }
+      responses:
+        "201":
+          description: Akun dibuat dan langsung login; cookie `antay_customer_session` dipasang.
+          headers:
+            Set-Cookie:
+              description: "`antay_customer_session` HttpOnly, SameSite=Strict."
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomerEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "409":
+          description: Email sudah terdaftar (`EMAIL_TAKEN`).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "429":
+          $ref: "#/components/responses/Error429"
+
+  /customer/v1/auth/login:
+    post:
+      tags: [customer]
+      summary: Masuk sebagai pembeli
+      operationId: customerLogin
+      security:
+        - csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          description: Cookie `antay_customer_session` dipasang.
+          headers:
+            Set-Cookie:
+              description: "`antay_customer_session` HttpOnly, SameSite=Strict."
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomerEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          description: Email atau kata sandi salah, atau akun nonaktif (`INVALID_CREDENTIALS`).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "403":
+          $ref: "#/components/responses/Error403"
+        "429":
+          $ref: "#/components/responses/Error429"
+
+  /customer/v1/auth/logout:
+    post:
+      tags: [customer]
+      summary: Keluar dari akun pembeli
+      description: Tidak butuh sesi valid, supaya cookie kedaluwarsa pun bisa dibersihkan.
+      operationId: customerLogout
+      security:
+        - csrfHeader: []
+      responses:
+        "204":
+          description: Cookie sesi pembeli dihapus.
+        "403":
+          $ref: "#/components/responses/Error403"
+
+  /customer/v1/me:
+    get:
+      tags: [customer]
+      summary: Profil pembeli yang sedang login
+      operationId: customerMe
+      security:
+        - customerCookie: []
+      responses:
+        "200":
+          description: Profil pembeli.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomerEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+    patch:
+      tags: [customer]
+      summary: Ubah nama atau nomor WhatsApp
+      operationId: customerUpdateMe
+      security:
+        - customerCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CustomerProfileRequest" }
+      responses:
+        "200":
+          description: Profil terbaru.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CustomerEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+
+  /customer/v1/orders/quote:
+    post:
+      tags: [customer]
+      summary: Hitung harga pesanan
+      description: >
+        Tidak menahan kuota. Kode promo yang tidak terpasang tidak membuat quote
+        gagal; alasannya ada di `promoRejection`. Kuota rate limit berbagi dengan
+        pesan dan batal tiket (30 per 10 menit per IP).
+      operationId: quoteOrder
+      security:
+        - customerCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/QuoteRequest" }
+      responses:
+        "200":
+          description: Rincian harga.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/QuoteEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "422":
+          description: >
+            `SALE_ENDED`, `SALE_NOT_OPEN`, `PACKAGE_UNAVAILABLE`, `MIXED_CATEGORY`,
+            `PAX_LIMIT` (lebih dari 10 orang), atau `QUOTA_EXCEEDED`. `details`
+            menunjuk `items` atau `items[i].packageId` / `items[i].quantity`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "429":
+          $ref: "#/components/responses/Error429"
+
+  /operational/v1/manage/events:
+    get:
+      tags: [manage]
+      summary: Daftar event yang dikelola
+      description: Organizer hanya melihat event miliknya; admin semua. Urut `eventDate` terbaru lalu nama.
+      operationId: manageListEvents
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: "#/components/schemas/EventStatus" }
+      responses:
+        "200":
+          description: Ringkasan event.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManagedEventSummaryListEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+    post:
+      tags: [manage]
+      summary: Buat event draft
+      description: >
+        Selalu `draft`. `organizerId` hanya dibaca untuk admin; organizer selalu
+        jadi pemilik event yang dibuatnya.
+      operationId: manageCreateEvent
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ManageEventCreateRequest" }
+      responses:
+        "201":
+          description: Event dibuat dengan `categories` kosong.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManagedEventEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/events/{eventId}:
+    get:
+      tags: [manage]
+      summary: Detail event beserta kategori dan paket
+      operationId: manageGetEvent
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Event lengkap, termasuk paket nonaktif.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManagedEventEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+    patch:
+      tags: [manage]
+      summary: Ubah event
+      description: >
+        `draft` boleh semua field. `published` hanya `description`, `saleStartsAt`,
+        `saleEndsAt`, `openTime`, `closeTime`, `slotMinutes`, `slotCapacity`,
+        `counterCount`, `serviceSeconds`; field lain yang berubah dijawab
+        `422 EVENT_NOT_EDITABLE` dengan `details` per field. Status lain selalu
+        `422 EVENT_NOT_EDITABLE` tanpa `details`. Field yang sama dengan nilai
+        tersimpan tidak dihitung perubahan.
+      operationId: manageUpdateEvent
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ManageEventPatchRequest" }
+      responses:
+        "200":
+          description: Event terbaru.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManagedEventEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "422":
+          $ref: "#/components/responses/Error422"
+    delete:
+      tags: [manage]
+      summary: Hapus event draft
+      description: Kategori, paket, gambar, dan denahnya ikut terhapus. Selain `draft` dijawab `422 EVENT_NOT_EDITABLE`.
+      operationId: manageDeleteEvent
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Id yang dihapus.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeletedEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/events/{eventId}/submissions:
+    post:
+      tags: [manage]
+      summary: Ajukan event (draft ke review)
+      description: >
+        Dicek kelengkapannya dulu. `422 EVENT_INCOMPLETE` berisi semua alasan di
+        `details`: `saleStartsAt`, `saleEndsAt`, `categories`,
+        `categories.{categoryId}.packages`, `categories.{categoryId}.seats`.
+      operationId: manageSubmitEvent
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ManagedEventOK"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/InvalidStatus409"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/events/{eventId}/approvals:
+    post:
+      tags: [manage]
+      summary: Setujui event (review ke published, admin)
+      operationId: manageApproveEvent
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ManagedEventOK"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/InvalidStatus409"
+
+  /operational/v1/manage/events/{eventId}/rejections:
+    post:
+      tags: [manage]
+      summary: Tolak event (review ke draft, admin)
+      operationId: manageRejectEvent
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RejectEventRequest" }
+      responses:
+        "200":
+          $ref: "#/components/responses/ManagedEventOK"
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/InvalidStatus409"
+
+  /operational/v1/manage/events/{eventId}/cancellations:
+    post:
+      tags: [manage]
+      summary: Batalkan event (published ke cancelled, admin)
+      operationId: manageCancelEvent
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ManagedEventOK"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/InvalidStatus409"
+
+  /operational/v1/manage/events/{eventId}/closures:
+    post:
+      tags: [manage]
+      summary: Tutup event (published ke closed, admin)
+      operationId: manageCloseEvent
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          $ref: "#/components/responses/ManagedEventOK"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/InvalidStatus409"
+
+  /operational/v1/manage/events/{eventId}/categories:
+    get:
+      tags: [manage]
+      summary: Daftar kategori event
+      operationId: manageListCategories
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Urut `sortOrder` lalu nama.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManagedCategoryListEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+    post:
+      tags: [manage]
+      summary: Tambah kategori
+      operationId: manageCreateCategory
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CategoryCreateRequest" }
+      responses:
+        "201":
+          description: Kategori dibuat.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManagedCategoryEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/categories/{categoryId}:
+    patch:
+      tags: [manage]
+      summary: Ubah kategori
+      operationId: manageUpdateCategory
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CategoryPatchRequest" }
+      responses:
+        "200":
+          description: Kategori terbaru.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManagedCategoryEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "422":
+          $ref: "#/components/responses/Error422"
+    delete:
+      tags: [manage]
+      summary: Hapus kategori
+      operationId: manageDeleteCategory
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+      responses:
+        "200":
+          description: Id yang dihapus.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeletedEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/categories/{categoryId}/packages:
+    get:
+      tags: [manage]
+      summary: Daftar paket kategori
+      operationId: manageListPackages
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+      responses:
+        "200":
+          description: Urut `sortOrder` lalu nama, termasuk paket nonaktif.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManagedPackageListEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+    post:
+      tags: [manage]
+      summary: Tambah paket
+      operationId: manageCreatePackage
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PackageCreateRequest" }
+      responses:
+        "201":
+          description: Paket dibuat.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManagedPackageEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/packages/{packageId}:
+    patch:
+      tags: [manage]
+      summary: Ubah paket
+      operationId: manageUpdatePackage
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/PackageId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PackagePatchRequest" }
+      responses:
+        "200":
+          description: Paket terbaru.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManagedPackageEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "422":
+          $ref: "#/components/responses/Error422"
+    delete:
+      tags: [manage]
+      summary: Hapus paket
+      operationId: manageDeletePackage
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/PackageId"
+      responses:
+        "200":
+          description: Id yang dihapus.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeletedEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/events/{eventId}/images:
+    get:
+      tags: [media]
+      summary: Poster dan galeri event
+      description: Poster dulu, lalu galeri urut `sortOrder`. Tetap bisa dibaca untuk event `closed` dan `cancelled`.
+      operationId: mediaListImages
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Semua gambar event.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MediaImageListEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+    post:
+      tags: [media]
+      summary: Tambah gambar galeri
+      description: Maksimal 8 gambar galeri per event (`422 GALLERY_FULL`).
+      operationId: mediaUploadGallery
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        $ref: "#/components/requestBodies/ImageUpload"
+      responses:
+        "201":
+          $ref: "#/components/responses/MediaImageCreated"
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/events/{eventId}/poster:
+    post:
+      tags: [media]
+      summary: Unggah atau ganti poster
+      description: Poster lama diganti dan `posterUrl` event ikut diperbarui.
+      operationId: mediaUploadPoster
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        $ref: "#/components/requestBodies/ImageUpload"
+      responses:
+        "201":
+          $ref: "#/components/responses/MediaImageCreated"
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/events/{eventId}/images/order:
+    put:
+      tags: [media]
+      summary: Atur urutan galeri
+      operationId: mediaReorderGallery
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReorderImagesRequest" }
+      responses:
+        "200":
+          description: Poster dan galeri dengan urutan baru.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MediaImageListEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/images/{imageId}:
+    patch:
+      tags: [media]
+      summary: Ubah teks alternatif
+      operationId: mediaUpdateAlt
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/ImageId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateAltRequest" }
+      responses:
+        "200":
+          description: Gambar terbaru.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MediaImageEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "422":
+          $ref: "#/components/responses/Error422"
+    delete:
+      tags: [media]
+      summary: Hapus gambar
+      description: Menghapus poster ikut mengosongkan `posterUrl` event.
+      operationId: mediaDeleteImage
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/ImageId"
+      responses:
+        "204":
+          description: Gambar dihapus.
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/events/{eventId}/seat-map:
+    get:
+      tags: [seating]
+      summary: Denah kursi untuk editor
+      description: Status kursi apa adanya (`available`, `held`, `sold`, `disabled`).
+      operationId: seatingManageSeatMap
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Layout, blok, dan kursi.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManageSeatMapEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+
+  /operational/v1/manage/events/{eventId}/layout:
+    put:
+      tags: [seating]
+      summary: Simpan kanvas dan panggung
+      operationId: seatingPutLayout
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SeatLayout" }
+      responses:
+        "200":
+          description: Layout tersimpan.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeatLayoutEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/events/{eventId}/seat-blocks:
+    post:
+      tags: [seating]
+      summary: Tambah blok kursi
+      operationId: seatingCreateBlock
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SeatBlockCreateRequest" }
+      responses:
+        "201":
+          description: Blok dan kursinya dibuat. `warnings` tidak menggagalkan simpan.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeatBlockResultEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/events/{eventId}/seats:
+    patch:
+      tags: [seating]
+      summary: Nonaktifkan atau aktifkan kursi
+      description: >
+        Hanya `available` dan `disabled`, dalam satu transaksi. Kursi yang sudah
+        berstatus tujuan dilewati.
+      operationId: seatingUpdateSeats
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateSeatsRequest" }
+      responses:
+        "200":
+          description: Hanya kursi yang benar-benar berubah, urut label.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeatListEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/seat-blocks/preview:
+    post:
+      tags: [seating]
+      summary: Pratinjau posisi kursi tanpa menyimpan
+      description: >
+        `categoryId`, `name`, dan `sortOrder` diterima tapi tidak dipakai.
+        Tetap jalan untuk event `closed` atau `cancelled`.
+      operationId: seatingPreviewBlock
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SeatPreviewRequest" }
+      responses:
+        "200":
+          description: Posisi kursi dan peringatan.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeatPreviewEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/manage/seat-blocks/{blockId}:
+    patch:
+      tags: [seating]
+      summary: Ubah blok kursi
+      description: >
+        Perubahan bentuk menulis ulang semua kursi (kursi `disabled` dipertahankan
+        lewat baris dan nomor) dan ditolak `409 BLOCK_LOCKED` bila ada kursi `held`
+        atau `sold`. Ganti `name` atau `sortOrder` saja tidak menyentuh kursi.
+      operationId: seatingUpdateBlock
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/BlockId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SeatBlockPatchRequest" }
+      responses:
+        "200":
+          description: Blok terbaru.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeatBlockResultEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "422":
+          $ref: "#/components/responses/Error422"
+    delete:
+      tags: [seating]
+      summary: Hapus blok kursi
+      operationId: seatingDeleteBlock
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/BlockId"
+      responses:
+        "204":
+          description: Blok dan kursinya dihapus.
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "422":
+          $ref: "#/components/responses/Error422"
+
+  /operational/v1/organizers:
+    get:
+      tags: [accounts]
+      summary: Daftar penyelenggara (admin)
+      operationId: listOrganizers
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Urut nama.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrganizerListEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+    post:
+      tags: [accounts]
+      summary: Tambah penyelenggara (admin)
+      operationId: createOrganizer
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrganizerCreateRequest" }
+      responses:
+        "201":
+          description: Penyelenggara dibuat.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrganizerEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+
+  /operational/v1/organizers/{organizerId}:
+    patch:
+      tags: [accounts]
+      summary: Ubah penyelenggara (admin)
+      operationId: updateOrganizer
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/OrganizerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrganizerPatchRequest" }
+      responses:
+        "200":
+          description: Penyelenggara terbaru.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrganizerEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+
+  /operational/v1/users:
+    get:
+      tags: [accounts]
+      summary: Daftar akun internal (admin)
+      operationId: listUsers
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Urut waktu dibuat.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManagedUserListEnvelope" }
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+    post:
+      tags: [accounts]
+      summary: Tambah akun internal (admin)
+      operationId: createUser
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserCreateRequest" }
+      responses:
+        "201":
+          description: Akun dibuat.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManagedUserEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "409":
+          description: Email sudah dipakai akun lain (`EMAIL_TAKEN`).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: Penyelenggara tidak ada atau nonaktif (`ORGANIZER_INVALID`, `details` menunjuk `organizerId`).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /operational/v1/users/{userId}:
+    patch:
+      tags: [accounts]
+      summary: Ubah akun internal (admin)
+      description: Role dan email tidak bisa diganti.
+      operationId: updateUser
+      security:
+        - cookieAuth: []
+          csrfHeader: []
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserPatchRequest" }
+      responses:
+        "200":
+          description: Akun terbaru.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManagedUserEnvelope" }
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "422":
+          description: Admin menonaktifkan akunnya sendiri (`CANNOT_DEACTIVATE_SELF`).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
 components:
   securitySchemes:
     cookieAuth:
       type: apiKey
       in: cookie
       name: antay_session
-      description: Cookie sesi HttpOnly dari login.
+      description: Cookie sesi internal HttpOnly dari login petugas, admin, atau penyelenggara (JWT audiens `antay-internal`).
+    customerCookie:
+      type: apiKey
+      in: cookie
+      name: antay_customer_session
+      description: Cookie sesi pembeli HttpOnly (JWT audiens `antay-customer`). Tidak bisa dipakai di rute internal, dan sebaliknya.
     csrfHeader:
       type: apiKey
       in: header
@@ -528,15 +1828,65 @@ components:
       required: true
       description: Kode tiket, tidak peka huruf besar/kecil. Endpoint public juga membuang spasi dan menambahkan tanda hubung yang lupa ditulis.
       schema: { type: string, example: GL-ABCD }
+    CategoryId:
+      name: categoryId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    PackageId:
+      name: packageId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ImageId:
+      name: imageId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    BlockId:
+      name: blockId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    OrganizerId:
+      name: organizerId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    FileName:
+      name: fileName
+      in: path
+      required: true
+      description: Nama berkas buatan server.
+      schema: { type: string, pattern: "^[a-z0-9-]+\\.(jpg|png|webp)$", example: 3f2a9c1e-poster.webp }
+
+  requestBodies:
+    ImageUpload:
+      required: true
+      description: >
+        Isi berkas diperiksa dari byte-nya, bukan dari `Content-Type` kiriman.
+        Ukuran maksimal `MEDIA_MAX_BYTES` (bawaan 5 MiB); seluruh body dibatasi
+        ukuran itu ditambah 64 KiB. Resolusi 400 sampai 6000 piksel per sisi.
+      content:
+        multipart/form-data:
+          schema: { $ref: "#/components/schemas/ImageUploadForm" }
+          encoding:
+            file:
+              contentType: image/jpeg, image/png, image/webp
 
   responses:
     Error400:
-      description: Body bukan JSON valid, key tidak dikenal, atau field kosong atau salah bentuk (`VALIDATION`).
+      description: Body bukan JSON valid, key tidak dikenal, atau field kosong atau salah bentuk (`VALIDATION`). `details` per field bila ada.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
     Error401:
-      description: Tidak ada sesi atau sesi kedaluwarsa.
+      description: Tidak ada sesi, sesi kedaluwarsa, atau akun sudah nonaktif (`UNAUTHORIZED`).
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -546,20 +1896,40 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
     Error404:
-      description: Event atau kode tiket tidak ada.
+      description: Data tidak ada atau milik penyelenggara lain (`NOT_FOUND`). Id path yang bukan UUID juga `404`.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
     Error409:
-      description: Tiket sudah ditukar (`ALREADY_REDEEMED`), milik event lain (`WRONG_EVENT`), statusnya bukan `booked` (`NOT_BOOKED`), sudah ditukar atau dibatalkan saat pembatalan, atau prefix event sudah dipakai (`CONFLICT`).
+      description: >
+        Data bentrok. Loket: `ALREADY_REDEEMED`, `WRONG_EVENT`, `NOT_BOOKED`;
+        pembatalan tiket dan prefix event + tanggal: `CONFLICT`; kelola event:
+        `CATEGORY_NAME_TAKEN`, `PACKAGE_NAME_TAKEN`, `CATEGORY_HAS_SEATS`,
+        `ALREADY_SOLD`; denah: `BLOCK_CODE_TAKEN`, `BLOCK_LOCKED`, `SEAT_LOCKED`.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    InvalidStatus409:
+      description: Status event tidak cocok dengan aksi ini, atau sudah diubah pemanggil lain (`INVALID_STATUS`).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Error413:
+      description: Berkas unggahan melewati batas ukuran (`FILE_TOO_LARGE`).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Error415:
+      description: Isi berkas bukan JPG, PNG, atau WebP (`UNSUPPORTED_MEDIA_TYPE`).
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
     Error429:
       description: >
         `RATE_LIMITED`: terlalu banyak request dari satu IP (IPv6 per /64). Pesan
-        dan batal tiket berbagi batas 30 request per 10 menit, termasuk yang gagal;
-        login 10 per 10 menit.
+        tiket, batal tiket, dan quote pembeli berbagi batas 30 request per 10 menit,
+        termasuk yang gagal; login internal, login pembeli, dan daftar pembeli
+        masing-masing 10 per 10 menit.
       headers:
         Retry-After:
           description: Detik sampai boleh mencoba lagi.
@@ -567,14 +1937,29 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
-      content:
-        application/json:
-          schema: { $ref: "#/components/schemas/ErrorResponse" }
     Error422:
-      description: Format benar tapi tidak lolos aturan bisnis. Kode per endpoint - buat tiket `EVENT_CLOSED`, `SLOT_INVALID`, `SLOT_PAST`, `SLOT_FULL`; buat event `INVALID_SCHEDULE`; koreksi antrean `INVALID_QUEUE`; tukar tiket `KTP_REQUIRED`, `INVALID_COUNTER`.
+      description: >
+        Format benar tapi tidak lolos aturan bisnis. Kode per endpoint: buat tiket
+        `EVENT_CLOSED`, `SLOT_INVALID`, `SLOT_PAST`, `SLOT_FULL`; buat atau ubah
+        event `INVALID_SCHEDULE`, `ORGANIZER_INVALID`, `EVENT_NOT_EDITABLE`; ajukan
+        event `EVENT_INCOMPLETE`; koreksi antrean `INVALID_QUEUE`; tukar tiket
+        `KTP_REQUIRED`, `INVALID_COUNTER`; gambar `IMAGE_TOO_SMALL`,
+        `IMAGE_TOO_LARGE`, `GALLERY_FULL`, `EVENT_NOT_EDITABLE`; denah
+        `INVALID_SEAT_MAP`, `CATEGORY_NOT_SEATED`, `SEAT_NOT_FOUND`,
+        `EVENT_NOT_EDITABLE`.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
+    ManagedEventOK:
+      description: Event setelah aksi.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ManagedEventEnvelope" }
+    MediaImageCreated:
+      description: Gambar disimpan.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/MediaImageEnvelope" }
 
   schemas:
     Meta:
@@ -623,12 +2008,27 @@ components:
 
     User:
       type: object
-      required: [id, email, name, role]
+      required: [id, email, name, role, organizerId]
       properties:
         id: { type: string, format: uuid }
         email: { type: string, format: email }
         name: { type: string }
-        role: { type: string, enum: [staff, admin] }
+        role: { $ref: "#/components/schemas/UserRole" }
+        organizerId:
+          type: [string, "null"]
+          format: uuid
+          description: Selalu dikirim; `null` untuk staff dan admin.
+    UserRole:
+      type: string
+      enum: [staff, admin, organizer]
+      description: Admin lolos semua cek role.
+    EventStatus:
+      type: string
+      enum: [draft, review, published, closed, cancelled]
+      description: "`open` versi 1 sudah tidak ada; event lama jadi `published`."
+    FeeBearer:
+      type: string
+      enum: [customer, organizer]
     EventRef:
       type: object
       required: [id, name, place, item, requirement, slotMinutes]
@@ -679,7 +2079,7 @@ components:
         counterCount: { type: integer }
         serviceSeconds: { type: integer }
         waitingCount: { type: integer }
-        status: { type: string, enum: [draft, open, closed] }
+        status: { $ref: "#/components/schemas/EventStatus" }
         leftTotal: { type: integer }
         slots:
           type: array
@@ -918,3 +2318,871 @@ components:
                       registered: { type: integer }
                       redeemed: { type: integer }
                       queue: { $ref: "#/components/schemas/Queue" }
+
+    # ---------- v2: pembeli ----------
+    Customer:
+      type: object
+      required: [id, email, name, phone]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        name: { type: string }
+        phone: { type: string, description: "Digit berawalan 62, misalnya `6281234567890`.", example: "6281234567890" }
+    CustomerRegisterRequest:
+      type: object
+      required: [email, password, name, phone]
+      additionalProperties: false
+      properties:
+        email: { type: string, format: email, maxLength: 254, description: Dirapikan jadi huruf kecil. }
+        password: { type: string, minLength: 8, description: "8 sampai 72 byte (batas bcrypt dihitung dalam byte)." }
+        name: { type: string, minLength: 2, maxLength: 80 }
+        phone: { type: string, description: "Nomor Indonesia diawali `08`, `62`, atau `+62`; spasi, strip, titik, dan kurung dibuang. 10 sampai 15 digit setelah dinormalisasi.", example: "0812-3456-7890" }
+    CustomerProfileRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 2, maxLength: 80 }
+        phone: { type: string, example: "+62 812 3456 7890" }
+    CustomerEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                customer: { $ref: "#/components/schemas/Customer" }
+
+    QuoteRequest:
+      type: object
+      required: [eventId, items]
+      additionalProperties: false
+      properties:
+        eventId: { type: string, format: uuid }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 10
+          description: Satu paket satu baris, semua dari satu kategori. Total orang maksimal 10.
+          items:
+            type: object
+            required: [packageId, quantity]
+            additionalProperties: false
+            properties:
+              packageId: { type: string, format: uuid }
+              quantity: { type: integer, minimum: 1 }
+        promoCode:
+          type: [string, "null"]
+          description: Dirapikan spasinya, tidak peka huruf besar/kecil.
+    PromoRejection:
+      type: string
+      enum: [unknown_code, inactive, not_started, expired, quota_exhausted, customer_limit,
+             not_applicable, min_subtotal, not_combinable, no_effect]
+    QuoteLine:
+      type: object
+      required: [packageId, packageName, categoryId, categoryName, pax, quantity,
+                 unitPrice, lineTotal, discountAmount]
+      properties:
+        packageId: { type: string, format: uuid }
+        packageName: { type: string }
+        categoryId: { type: string, format: uuid }
+        categoryName: { type: string }
+        pax: { type: integer }
+        quantity: { type: integer }
+        unitPrice: { type: integer, description: Harga satu paket, rupiah. }
+        lineTotal: { type: integer, description: "`unitPrice x quantity`" }
+        discountAmount: { type: integer }
+    AppliedDiscount:
+      type: object
+      required: [discountId, name, kind, code, amount]
+      properties:
+        discountId: { type: string, format: uuid }
+        name: { type: string }
+        kind: { type: string, enum: [auto, code] }
+        code: { type: string, description: Kosong untuk diskon `auto`. }
+        amount: { type: integer }
+    Quote:
+      type: object
+      required: [eventId, items, totalPax, subtotal, discountTotal, fee, total,
+                 appliedDiscounts, promoRejection]
+      properties:
+        eventId: { type: string, format: uuid }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/QuoteLine" }
+        totalPax: { type: integer }
+        subtotal: { type: integer }
+        discountTotal: { type: integer }
+        fee:
+          type: integer
+          description: Bagian biaya layanan yang dibayar pembeli; selalu 0 bila `feeBearer` event `organizer`.
+        total: { type: integer, description: "`subtotal - discountTotal + fee`" }
+        appliedDiscounts:
+          type: array
+          items: { $ref: "#/components/schemas/AppliedDiscount" }
+        promoRejection:
+          description: "`null` bila kode tidak diisi atau terpasang."
+          oneOf:
+            - $ref: "#/components/schemas/PromoRejection"
+            - type: "null"
+    QuoteEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                quote: { $ref: "#/components/schemas/Quote" }
+
+    # ---------- v2: katalog publik ----------
+    CatalogEvent:
+      description: Semua field `Event` versi 1 ditambah data jualan.
+      allOf:
+        - $ref: "#/components/schemas/Event"
+        - type: object
+          required: [description, posterUrl, saleStartsAt, saleEndsAt, onSale, priceFrom, left]
+          properties:
+            description: { type: string }
+            posterUrl: { type: string, description: "`/media/<nama>` atau string kosong." }
+            saleStartsAt: { type: [string, "null"], format: date-time }
+            saleEndsAt: { type: [string, "null"], format: date-time }
+            onSale: { type: boolean, description: Mulai inklusif, akhir eksklusif; batas kosong dianggap terbuka. }
+            priceFrom: { type: [integer, "null"], description: Harga paket aktif termurah. }
+            left: { type: integer, description: Jumlah sisa semua kategori, dalam orang. }
+    CatalogPackage:
+      type: object
+      required: [id, name, pax, price, pricePerPax, left]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        pax: { type: integer }
+        price: { type: integer }
+        pricePerPax: { type: integer, description: "`price / pax` dibulatkan ke bawah, hanya pembanding." }
+        left: { type: [integer, "null"], description: "`null` bila paket tidak punya kuota sendiri." }
+    CatalogCategory:
+      type: object
+      required: [id, name, description, sortOrder, isSeated, priceFrom, left, soldOut, packages]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        sortOrder: { type: integer }
+        isSeated: { type: boolean }
+        priceFrom: { type: [integer, "null"] }
+        left: { type: integer, description: "Dalam orang. Berkursi: kursi `available`; tanpa kursi: `quota`." }
+        soldOut: { type: boolean }
+        packages:
+          type: array
+          description: Hanya paket aktif.
+          items: { $ref: "#/components/schemas/CatalogPackage" }
+    CatalogImage:
+      type: object
+      required: [url, width, height, alt]
+      properties:
+        url: { type: string, example: /media/3f2a9c1e-galeri.webp }
+        width: { type: integer }
+        height: { type: integer }
+        alt: { type: string }
+    CatalogEventDetail:
+      allOf:
+        - $ref: "#/components/schemas/CatalogEvent"
+        - type: object
+          required: [categories, gallery]
+          properties:
+            categories:
+              type: array
+              items: { $ref: "#/components/schemas/CatalogCategory" }
+            gallery:
+              type: array
+              items: { $ref: "#/components/schemas/CatalogImage" }
+    CatalogEventListEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                events:
+                  type: array
+                  items: { $ref: "#/components/schemas/CatalogEvent" }
+    CatalogEventDetailEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                event: { $ref: "#/components/schemas/CatalogEventDetail" }
+
+    # ---------- v2: kelola event ----------
+    ManageEventCreateRequest:
+      type: object
+      required: [name, place, item, requirement, eventDate, openTime, closeTime,
+                 slotMinutes, slotCapacity, counterCount, serviceSeconds]
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 3, maxLength: 70 }
+        place: { type: string, minLength: 1, maxLength: 50 }
+        item: { type: string, minLength: 1, maxLength: 50 }
+        requirement: { type: string, minLength: 1, maxLength: 80 }
+        eventDate: { type: string, format: date, description: Tidak boleh sebelum hari ini. }
+        openTime: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$", example: "10:00" }
+        closeTime: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$", example: "18:00" }
+        slotMinutes: { type: integer, minimum: 10, maximum: 120 }
+        slotCapacity: { type: integer, minimum: 1, maximum: 500 }
+        counterCount: { type: integer, minimum: 1, maximum: 20 }
+        serviceSeconds: { type: integer, minimum: 30, maximum: 600 }
+        description: { type: string, maxLength: 2000 }
+        saleStartsAt: { type: [string, "null"], format: date-time }
+        saleEndsAt: { type: [string, "null"], format: date-time, description: Harus setelah `saleStartsAt`. }
+        feeBearer: { $ref: "#/components/schemas/FeeBearer" }
+        feePercentBp: { type: integer, minimum: 0, maximum: 10000, default: 0, description: Basis poin. }
+        feeFlat: { type: integer, minimum: 0, maximum: 100000000, default: 0 }
+        organizerId:
+          type: [string, "null"]
+          format: uuid
+          description: Hanya dibaca untuk admin; organizer selalu jadi pemilik.
+    ManageEventPatchRequest:
+      type: object
+      additionalProperties: false
+      description: Semua opsional. `organizerId` dan `posterUrl` tidak diterima.
+      properties:
+        name: { type: string, minLength: 3, maxLength: 70 }
+        place: { type: string, minLength: 1, maxLength: 50 }
+        item: { type: string, minLength: 1, maxLength: 50 }
+        requirement: { type: string, minLength: 1, maxLength: 80 }
+        eventDate: { type: string, format: date }
+        openTime: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$" }
+        closeTime: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$" }
+        slotMinutes: { type: integer, minimum: 10, maximum: 120 }
+        slotCapacity: { type: integer, minimum: 1, maximum: 500 }
+        counterCount: { type: integer, minimum: 1, maximum: 20 }
+        serviceSeconds: { type: integer, minimum: 30, maximum: 600 }
+        description: { type: string, maxLength: 2000 }
+        saleStartsAt: { type: [string, "null"], format: date-time, description: "`null` mengosongkan." }
+        saleEndsAt: { type: [string, "null"], format: date-time, description: "`null` mengosongkan." }
+        feeBearer: { $ref: "#/components/schemas/FeeBearer" }
+        feePercentBp: { type: integer, minimum: 0, maximum: 10000 }
+        feeFlat: { type: integer, minimum: 0, maximum: 100000000 }
+    RejectEventRequest:
+      type: object
+      required: [reason]
+      additionalProperties: false
+      properties:
+        reason: { type: string, minLength: 3, maxLength: 300 }
+    CategoryCreateRequest:
+      type: object
+      required: [name]
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 60, description: Unik per event, tidak peka huruf besar/kecil. }
+        description: { type: string, maxLength: 300 }
+        sortOrder: { type: integer, minimum: 0, maximum: 9999, default: 0 }
+        isSeated: { type: boolean, default: false }
+        quota:
+          type: [integer, "null"]
+          minimum: 1
+          description: Dalam orang. Wajib untuk kategori tanpa kursi, harus kosong untuk kategori berkursi.
+    CategoryPatchRequest:
+      type: object
+      additionalProperties: false
+      description: Semua opsional. Pindah ke `isSeated` true tanpa `quota` otomatis membuang kuota lama.
+      properties:
+        name: { type: string, minLength: 1, maxLength: 60 }
+        description: { type: string, maxLength: 300 }
+        sortOrder: { type: integer, minimum: 0, maximum: 9999 }
+        isSeated: { type: boolean }
+        quota: { type: [integer, "null"], minimum: 1 }
+    PackageCreateRequest:
+      type: object
+      required: [name, pax, price]
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 40, description: Unik per kategori, tidak peka huruf besar/kecil. }
+        pax: { type: integer, minimum: 1, maximum: 10 }
+        price: { type: integer, minimum: 0, maximum: 100000000, description: Harga satu paket. }
+        quota: { type: [integer, "null"], minimum: 1, description: Dalam jumlah paket; `null` ikut kuota kategori. }
+        sortOrder: { type: integer, minimum: 0, maximum: 9999, default: 0 }
+        isActive: { type: boolean, default: true }
+    PackagePatchRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 40 }
+        pax: { type: integer, minimum: 1, maximum: 10 }
+        price: { type: integer, minimum: 0, maximum: 100000000 }
+        quota: { type: [integer, "null"], minimum: 1 }
+        sortOrder: { type: integer, minimum: 0, maximum: 9999 }
+        isActive: { type: boolean }
+    ManagedPackage:
+      type: object
+      required: [id, name, pax, price, quota, sortOrder, isActive]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        pax: { type: integer }
+        price: { type: integer }
+        quota: { type: [integer, "null"] }
+        sortOrder: { type: integer }
+        isActive: { type: boolean }
+    ManagedCategory:
+      type: object
+      required: [id, name, description, sortOrder, isSeated, quota, seatCount, packages]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        sortOrder: { type: integer }
+        isSeated: { type: boolean }
+        quota: { type: [integer, "null"] }
+        seatCount: { type: integer, description: Kursi selain `disabled`. }
+        packages:
+          type: array
+          description: Termasuk paket nonaktif.
+          items: { $ref: "#/components/schemas/ManagedPackage" }
+    ManagedEventSummary:
+      type: object
+      required: [id, codePrefix, name, place, eventDate, openTime, closeTime, status,
+                 organizerId, organizerName, posterUrl, saleStartsAt, saleEndsAt,
+                 rejectionReason, submittedAt, publishedAt]
+      properties:
+        id: { type: string, format: uuid }
+        codePrefix: { type: string }
+        name: { type: string }
+        place: { type: string }
+        eventDate: { type: string, format: date }
+        openTime: { type: string }
+        closeTime: { type: string }
+        status: { $ref: "#/components/schemas/EventStatus" }
+        organizerId: { type: [string, "null"], format: uuid }
+        organizerName: { type: string, description: Kosong bila tanpa penyelenggara. }
+        posterUrl: { type: string }
+        saleStartsAt: { type: [string, "null"], format: date-time }
+        saleEndsAt: { type: [string, "null"], format: date-time }
+        rejectionReason: { type: [string, "null"] }
+        submittedAt: { type: [string, "null"], format: date-time }
+        publishedAt: { type: [string, "null"], format: date-time }
+    ManagedEvent:
+      type: object
+      required: [id, codePrefix, name, place, item, requirement, eventDate, openTime,
+                 closeTime, slotMinutes, slotCapacity, counterCount, serviceSeconds,
+                 status, organizerId, description, posterUrl, saleStartsAt, saleEndsAt,
+                 feeBearer, feePercentBp, feeFlat, rejectionReason, submittedAt,
+                 publishedAt, categories]
+      properties:
+        id: { type: string, format: uuid }
+        codePrefix: { type: string }
+        name: { type: string }
+        place: { type: string }
+        item: { type: string }
+        requirement: { type: string }
+        eventDate: { type: string, format: date }
+        openTime: { type: string }
+        closeTime: { type: string }
+        slotMinutes: { type: integer }
+        slotCapacity: { type: integer }
+        counterCount: { type: integer }
+        serviceSeconds: { type: integer }
+        status: { $ref: "#/components/schemas/EventStatus" }
+        organizerId: { type: [string, "null"], format: uuid }
+        description: { type: string }
+        posterUrl: { type: string }
+        saleStartsAt: { type: [string, "null"], format: date-time }
+        saleEndsAt: { type: [string, "null"], format: date-time }
+        feeBearer: { $ref: "#/components/schemas/FeeBearer" }
+        feePercentBp: { type: integer }
+        feeFlat: { type: integer }
+        rejectionReason: { type: [string, "null"] }
+        submittedAt: { type: [string, "null"], format: date-time }
+        publishedAt: { type: [string, "null"], format: date-time }
+        categories:
+          type: array
+          items: { $ref: "#/components/schemas/ManagedCategory" }
+    ManagedEventEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                event: { $ref: "#/components/schemas/ManagedEvent" }
+    ManagedEventSummaryListEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                events:
+                  type: array
+                  items: { $ref: "#/components/schemas/ManagedEventSummary" }
+    ManagedCategoryEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                category: { $ref: "#/components/schemas/ManagedCategory" }
+    ManagedCategoryListEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                categories:
+                  type: array
+                  items: { $ref: "#/components/schemas/ManagedCategory" }
+    ManagedPackageEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                package: { $ref: "#/components/schemas/ManagedPackage" }
+    ManagedPackageListEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                packages:
+                  type: array
+                  items: { $ref: "#/components/schemas/ManagedPackage" }
+    DeletedEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string, format: uuid }
+
+    # ---------- v2: gambar ----------
+    MediaImage:
+      type: object
+      required: [id, kind, url, width, height, alt, sortOrder]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [poster, gallery] }
+        url: { type: string, example: /media/3f2a9c1e-poster.webp }
+        width: { type: integer }
+        height: { type: integer }
+        alt: { type: string }
+        sortOrder: { type: integer }
+    ImageUploadForm:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          description: Tepat satu berkas JPG, PNG, atau WebP.
+        alt: { type: string, maxLength: 200, description: Opsional, tanpa baris baru atau karakter kontrol. }
+    ReorderImagesRequest:
+      type: object
+      required: [imageIds]
+      additionalProperties: false
+      properties:
+        imageIds:
+          type: array
+          description: Semua gambar galeri event, masing-masing satu kali, tanpa poster.
+          items: { type: string, format: uuid }
+    UpdateAltRequest:
+      type: object
+      required: [alt]
+      additionalProperties: false
+      properties:
+        alt: { type: string, maxLength: 200, description: Boleh string kosong. }
+    MediaImageEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                image: { $ref: "#/components/schemas/MediaImage" }
+    MediaImageListEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                images:
+                  type: array
+                  items: { $ref: "#/components/schemas/MediaImage" }
+
+    # ---------- v2: denah kursi ----------
+    SeatStage:
+      type: object
+      required: [x, y, width, height, label]
+      additionalProperties: false
+      properties:
+        x: { type: integer, minimum: 0 }
+        y: { type: integer, minimum: 0 }
+        width: { type: integer, minimum: 1 }
+        height: { type: integer, minimum: 1 }
+        label: { type: string, minLength: 1, maxLength: 40 }
+    SeatLayout:
+      type: object
+      required: [canvasWidth, canvasHeight, stage]
+      additionalProperties: false
+      description: Panggung harus berada di dalam kanvas. Bawaan 1000 x 700, panggung x 350 y 20 ukuran 300 x 60 berlabel `Panggung`.
+      properties:
+        canvasWidth: { type: integer, minimum: 200, maximum: 5000 }
+        canvasHeight: { type: integer, minimum: 200, maximum: 5000 }
+        stage: { $ref: "#/components/schemas/SeatStage" }
+    SeatStatus:
+      type: string
+      enum: [available, held, sold, disabled]
+    PublicSeatStatus:
+      type: string
+      enum: [available, disabled, taken]
+    SeatBlock:
+      type: object
+      required: [id, categoryId, categoryName, code, name, x, y, rotation, rowCount,
+                 seatsPerRow, curve, seatSpacing, rowSpacing, firstRowLabel,
+                 numbering, aisleAfter, sortOrder, seatCount]
+      properties:
+        id: { type: string, format: uuid }
+        categoryId: { type: string, format: uuid }
+        categoryName: { type: string }
+        code: { type: string }
+        name: { type: string }
+        x: { type: integer }
+        y: { type: integer }
+        rotation: { type: integer }
+        rowCount: { type: integer }
+        seatsPerRow: { type: integer }
+        curve: { type: integer }
+        seatSpacing: { type: integer }
+        rowSpacing: { type: integer }
+        firstRowLabel: { type: string }
+        numbering: { type: string, enum: [ltr, rtl] }
+        aisleAfter:
+          type: array
+          items: { type: integer }
+        sortOrder: { type: integer }
+        seatCount: { type: integer, description: Semua kursi blok, termasuk `disabled`. }
+    Seat:
+      type: object
+      required: [id, label, row, number, x, y, blockId, categoryId, status]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string, example: A-B12, description: "`{code}-{row}{number}`" }
+        row: { type: string, example: B }
+        number: { type: integer }
+        x: { type: integer }
+        y: { type: integer }
+        blockId: { type: string, format: uuid }
+        categoryId: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/SeatStatus" }
+    PublicSeat:
+      type: object
+      required: [id, label, row, number, x, y, blockId, categoryId, status]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string, example: A-B12 }
+        row: { type: string }
+        number: { type: integer }
+        x: { type: integer }
+        y: { type: integer }
+        blockId: { type: string, format: uuid }
+        categoryId: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/PublicSeatStatus" }
+    PublicSeatBlock:
+      type: object
+      required: [id, code, name, categoryId, categoryName]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        categoryId: { type: string, format: uuid }
+        categoryName: { type: string }
+    SeatPreviewSeat:
+      type: object
+      required: [label, row, number, x, y]
+      properties:
+        label: { type: string }
+        row: { type: string }
+        number: { type: integer }
+        x: { type: integer }
+        y: { type: integer }
+    SeatBlockCreateRequest:
+      type: object
+      required: [categoryId, name, code, x, y, rowCount, seatsPerRow]
+      additionalProperties: false
+      properties:
+        categoryId: { type: string, format: uuid, description: Kategori berkursi milik event ini. }
+        name: { type: string, minLength: 1, maxLength: 40 }
+        code: { type: string, pattern: "^[A-Z0-9]{1,3}$", description: Unik per event. }
+        x: { type: integer, minimum: -20000, maximum: 20000, description: Titik tengah baris terdepan. }
+        y: { type: integer, minimum: -20000, maximum: 20000 }
+        rotation: { type: integer, minimum: -180, maximum: 180, default: 0 }
+        rowCount: { type: integer, minimum: 1, maximum: 50 }
+        seatsPerRow: { type: integer, minimum: 1, maximum: 80 }
+        curve: { type: integer, minimum: 0, maximum: 100, default: 0 }
+        seatSpacing: { type: integer, minimum: 16, maximum: 80, default: 28 }
+        rowSpacing: { type: integer, minimum: 16, maximum: 80, default: 32 }
+        firstRowLabel: { type: string, pattern: "^[A-Z]$", default: A }
+        numbering: { type: string, enum: [ltr, rtl], default: ltr }
+        aisleAfter:
+          type: array
+          default: []
+          description: Nomor kursi 1 sampai `seatsPerRow - 1`, tanpa dobel.
+          items: { type: integer, minimum: 1 }
+        sortOrder: { type: integer, default: 0 }
+    SeatBlockPatchRequest:
+      type: object
+      additionalProperties: false
+      description: Semua opsional, aturan sama dengan create.
+      properties:
+        categoryId: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 40 }
+        code: { type: string, pattern: "^[A-Z0-9]{1,3}$" }
+        x: { type: integer, minimum: -20000, maximum: 20000 }
+        y: { type: integer, minimum: -20000, maximum: 20000 }
+        rotation: { type: integer, minimum: -180, maximum: 180 }
+        rowCount: { type: integer, minimum: 1, maximum: 50 }
+        seatsPerRow: { type: integer, minimum: 1, maximum: 80 }
+        curve: { type: integer, minimum: 0, maximum: 100 }
+        seatSpacing: { type: integer, minimum: 16, maximum: 80 }
+        rowSpacing: { type: integer, minimum: 16, maximum: 80 }
+        firstRowLabel: { type: string, pattern: "^[A-Z]$" }
+        numbering: { type: string, enum: [ltr, rtl] }
+        aisleAfter:
+          type: array
+          items: { type: integer, minimum: 1 }
+        sortOrder: { type: integer }
+    SeatPreviewRequest:
+      type: object
+      required: [eventId, code, x, y, rowCount, seatsPerRow]
+      additionalProperties: false
+      properties:
+        eventId: { type: string, format: uuid }
+        blockId:
+          type: [string, "null"]
+          format: uuid
+          description: Blok yang sedang diedit, supaya tidak dianggap menabrak dirinya sendiri.
+        categoryId: { type: string, description: Diterima tapi tidak dipakai. }
+        name: { type: string, description: Diterima tapi tidak dipakai. }
+        sortOrder: { type: integer, description: Diterima tapi tidak dipakai. }
+        code: { type: string, pattern: "^[A-Z0-9]{1,3}$" }
+        x: { type: integer, minimum: -20000, maximum: 20000 }
+        y: { type: integer, minimum: -20000, maximum: 20000 }
+        rotation: { type: integer, minimum: -180, maximum: 180, default: 0 }
+        rowCount: { type: integer, minimum: 1, maximum: 50 }
+        seatsPerRow: { type: integer, minimum: 1, maximum: 80 }
+        curve: { type: integer, minimum: 0, maximum: 100, default: 0 }
+        seatSpacing: { type: integer, minimum: 16, maximum: 80, default: 28 }
+        rowSpacing: { type: integer, minimum: 16, maximum: 80, default: 32 }
+        firstRowLabel: { type: string, pattern: "^[A-Z]$", default: A }
+        numbering: { type: string, enum: [ltr, rtl], default: ltr }
+        aisleAfter:
+          type: array
+          items: { type: integer, minimum: 1 }
+    UpdateSeatsRequest:
+      type: object
+      additionalProperties: false
+      description: Satu label tidak boleh ada di kedua daftar.
+      properties:
+        disable:
+          type: array
+          items: { type: string, example: A-A1 }
+        enable:
+          type: array
+          items: { type: string }
+    SeatWarnings:
+      type: array
+      description: >
+        Tidak menggagalkan simpan. Isinya `Blok {code} bertabrakan dengan blok {code lain}`,
+        `Blok {code} menabrak panggung`, atau `Sebagian kursi blok {code} berada di luar kanvas`.
+      items: { type: string }
+    SeatLayoutEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                layout: { $ref: "#/components/schemas/SeatLayout" }
+    ManageSeatMapEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                layout: { $ref: "#/components/schemas/SeatLayout" }
+                blocks:
+                  type: array
+                  items: { $ref: "#/components/schemas/SeatBlock" }
+                seats:
+                  type: array
+                  items: { $ref: "#/components/schemas/Seat" }
+    PublicSeatMapEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                layout: { $ref: "#/components/schemas/SeatLayout" }
+                blocks:
+                  type: array
+                  items: { $ref: "#/components/schemas/PublicSeatBlock" }
+                seats:
+                  type: array
+                  items: { $ref: "#/components/schemas/PublicSeat" }
+    SeatBlockResultEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [block, seatCount, warnings]
+              properties:
+                block: { $ref: "#/components/schemas/SeatBlock" }
+                seatCount: { type: integer }
+                warnings: { $ref: "#/components/schemas/SeatWarnings" }
+    SeatListEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                seats:
+                  type: array
+                  items: { $ref: "#/components/schemas/Seat" }
+    SeatPreviewEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                seats:
+                  type: array
+                  items: { $ref: "#/components/schemas/SeatPreviewSeat" }
+                warnings: { $ref: "#/components/schemas/SeatWarnings" }
+
+    # ---------- v2: penyelenggara dan akun ----------
+    Organizer:
+      type: object
+      required: [id, name, contactEmail, contactPhone, isActive]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        contactEmail: { type: string, format: email }
+        contactPhone: { type: string, description: Digit berawalan 62, atau kosong. }
+        isActive: { type: boolean }
+    OrganizerCreateRequest:
+      type: object
+      required: [name, contactEmail]
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        contactEmail: { type: string, format: email }
+        contactPhone: { type: string, description: Opsional; bila diisi, aturan nomor sama dengan pembeli. }
+    OrganizerPatchRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        contactEmail: { type: string, format: email }
+        contactPhone: { type: string, description: String kosong mengosongkan. }
+        isActive: { type: boolean }
+    OrganizerEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                organizer: { $ref: "#/components/schemas/Organizer" }
+    OrganizerListEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                organizers:
+                  type: array
+                  items: { $ref: "#/components/schemas/Organizer" }
+    ManagedUser:
+      allOf:
+        - $ref: "#/components/schemas/User"
+        - type: object
+          required: [isActive]
+          properties:
+            isActive: { type: boolean }
+    UserCreateRequest:
+      type: object
+      required: [email, password, name, role]
+      additionalProperties: false
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8, description: "8 sampai 72 byte." }
+        name: { type: string, minLength: 2, maxLength: 80 }
+        role: { $ref: "#/components/schemas/UserRole" }
+        organizerId:
+          type: [string, "null"]
+          format: uuid
+          description: Wajib untuk `organizer`, harus kosong untuk role lain.
+    UserPatchRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 2, maxLength: 80 }
+        isActive: { type: boolean, description: Admin tidak bisa menonaktifkan akunnya sendiri. }
+        password: { type: string, minLength: 8 }
+    ManagedUserEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                user: { $ref: "#/components/schemas/ManagedUser" }
+    ManagedUserListEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                users:
+                  type: array
+                  items: { $ref: "#/components/schemas/ManagedUser" }
