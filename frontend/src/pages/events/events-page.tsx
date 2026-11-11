@@ -1,55 +1,51 @@
-﻿import { useCallback, useEffect, useState } from 'react'
-import { ApiError, fetchOpenEvents } from '@/lib/api'
-import type { EventDetail } from '@/types/api'
-import { EventCard } from '@/components/events/event-card'
-import { EventsEmpty, EventsError, EventsLoading } from '@/components/events/event-states'
-import { todayLabel } from '@/lib/format'
-
-type LoadState = 'loading' | 'ready' | 'error'
+﻿import { Container } from '@/components/ui/container'
+import { Section } from '@/components/ui/section'
+import { Heading, Paragraph } from '@/components/ui/text'
+import { EventsResults } from '@/components/events/list/events-results'
+import { EventsToolbar } from '@/components/events/list/events-toolbar'
+import { useEventsPage } from '@/components/events/list/use-events-page'
 
 export function EventsPage() {
-  const [events, setEvents] = useState<EventDetail[]>([])
-  const [state, setState] = useState<LoadState>('loading')
-  const [error, setError] = useState<string | null>(null)
-
-  const load = useCallback(async () => {
-    setState('loading')
-    setError(null)
-    try {
-      setEvents(await fetchOpenEvents())
-      setState('ready')
-    } catch (cause) {
-      setState('error')
-      setError(cause instanceof ApiError ? cause.message : 'Event hari ini gagal dimuat.')
-    }
-  }, [])
-
-  useEffect(() => {
-    void load()
-  }, [load])
+  const page = useEventsPage()
 
   return (
-    <section className="grid gap-5">
-      <header className="grid gap-1">
-        <h1 className="text-2xl font-semibold tracking-[-0.01em]">Event hari ini</h1>
-        <p className="text-sm text-muted">
-          {todayLabel()}. Pilih satu event untuk melihat jam datang yang masih kosong.
-        </p>
-      </header>
+    <Section pad="sm" labelledBy="events-title">
+      <Container size="wide" className="grid gap-5">
+        <header className="grid gap-1">
+          <Heading level={1} id="events-title">
+            Event di Summarecon Mall Bandung
+          </Heading>
+          <Paragraph tone="muted" size="sm" className="num">
+            {page.state === 'ready' ? countLabel(page.results.length, page.total, page.filtered) : 'Memuat jadwal event...'}
+          </Paragraph>
+        </header>
 
-      {state === 'loading' ? (
-        <EventsLoading />
-      ) : state === 'error' ? (
-        <EventsError message={error} onRetry={() => void load()} />
-      ) : events.length === 0 ? (
-        <EventsEmpty />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {events.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
-        </div>
-      )}
-    </section>
+        <EventsToolbar
+          query={page.query}
+          when={page.when}
+          sort={page.sort}
+          onQueryChange={page.setQuery}
+          onWhenChange={page.setWhen}
+          onSortChange={page.setSort}
+        />
+
+        <EventsResults
+          state={page.state}
+          error={page.error}
+          total={page.total}
+          results={page.results}
+          query={page.query}
+          when={page.when}
+          onRetry={page.reload}
+          onReset={page.reset}
+        />
+      </Container>
+    </Section>
   )
+}
+
+function countLabel(shown: number, total: number, filtered: boolean): string {
+  if (total === 0) return 'Belum ada event yang tayang.'
+  if (filtered) return `${shown} dari ${total} event cocok dengan saringanmu.`
+  return `${total} event akan datang di mal.`
 }
