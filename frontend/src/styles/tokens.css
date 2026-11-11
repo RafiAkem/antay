@@ -1,23 +1,31 @@
 @import "tailwindcss";
 
-/* Palet dari prototipe Antay (accent-ladder): biru tua hanya untuk penanda kecil,
-   tint pucat untuk area. Satu aksen, sisanya netral. */
+/* Arah v2 (docs/ui-direction.md): marketplace event. Latar hampir putih
+   netral, biru Antay tetap satu-satunya aksen. promo dan scarce bukan aksen kedua:
+   promo cuma untuk diskon, scarce cuma untuk sisa sedikit. */
 @theme {
-  --color-ground: #f6f8fe;
+  --color-ground: #fafbfb;
   --color-surface: #ffffff;
-  --color-raised: #f1f4fb;
-  --color-active: #e6ecfb;
-  --color-border-soft: #e3e8f2;
-  --color-rule: #eef1f6;
-  --color-control: #cdd5e1;
-  --color-ink: #1c1f26;
-  --color-muted: #5a6270;
-  --color-faint: #687180;
+  /* raised, active, rule dipakai halaman v1 (loket, dasbor). Nilainya ikut
+     dinetralkan supaya tidak ada sisa rona biru di latar yang sekarang abu. */
+  --color-raised: #f2f4f5;
+  --color-active: #e8ecef;
+  --color-border-soft: #e4e8eb;
+  --color-rule: #eef1f3;
+  --color-control: #ccd2d8;
+  --color-ink: #0b1620;
+  --color-muted: #536b75;
+  /* Kontrasnya di bawah 4.5:1, jadi hanya untuk placeholder dan teks nonaktif. */
+  --color-faint: #8a99a3;
   --color-accent: #1747e6;
   --color-accent-ink: #0f2e99;
   --color-tint-50: #f1f5ff;
   --color-tint-100: #e3eafe;
   --color-tint-200: #c9d6fd;
+  --color-promo: #d6004c;
+  --color-promo-bg: #fff0f4;
+  --color-scarce: #b85c00;
+  --color-scarce-bg: #fff4e5;
   --color-positive: #247b50;
   --color-positive-bg: #dcfae5;
   --color-positive-ink: #04250e;
@@ -27,14 +35,46 @@
   --color-warning-bg: #fffbeb;
   --color-warning-ink: #92400e;
   --color-warning-border: #fde68a;
-  --color-board: #1c1f26;
+  --color-night: #08131b;
+  /* Papan TV memakai warna malam yang sama dengan hero gelap dan ticket stub. */
+  --color-board: var(--color-night);
   --color-board-ink: #f3f5f8;
   --color-board-dim: #a9b1bd;
-  --color-board-line: #343944;
+  --color-board-line: #26323b;
 
-  --font-sans: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
 
-  --radius-card: 8px;
-  --radius-control: 6px;
+  --radius-tag: 4px;
+  --radius-control: 8px;
+  --radius-card: 10px;
+  --radius-sheet: 16px;
+  --radius-pill: 999px;
+
+  /* Gutter dipakai Container dan Carousel (yang menembus gutter di ponsel),
+     jadi harus satu angka yang sama. Jangan ditulis ulang di komponen. */
+  --spacing-gutter: clamp(16px, 4vw, 48px);
+  --spacing-header: 56px;
+  /* Tinggi tab bar ponsel tanpa safe area. StickyCta sengaja lebih tinggi dari ini. */
+  --spacing-tabbar: 56px;
+
+  --animate-sheet-up: sheet-up 240ms cubic-bezier(0.32, 0.72, 0, 1);
+  --animate-sheet-side: sheet-side 240ms cubic-bezier(0.32, 0.72, 0, 1);
+  --animate-fade-in: fade-in 160ms ease-out;
+
+  @keyframes sheet-up {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes sheet-side {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
 }

@@ -1,5 +1,7 @@
-import { useEffect, type ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { cn } from './cn'
+import { useOverlay } from './use-overlay'
 
 type Props = {
   open: boolean
@@ -11,38 +13,34 @@ type Props = {
   width?: 'md' | 'lg'
 }
 
+// Modal untuk konfirmasi singkat. Untuk alur panjang (pilih tiket, checkout)
+// pakai Sheet, yang di ponsel jadi bottom sheet penuh.
 export function Modal({ open, title, description, onClose, footer, children, width = 'md' }: Props) {
-  useEffect(() => {
-    if (!open) return
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', onKey)
-    const previous = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = previous
-    }
-  }, [open, onClose])
+  const panelRef = useRef<HTMLDivElement>(null)
+  useOverlay(open, onClose, panelRef)
 
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink/45 p-0 sm:items-center sm:p-6">
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-night/50 p-0 motion-safe:animate-fade-in sm:items-center sm:p-6">
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`w-full ${width === 'lg' ? 'sm:max-w-2xl' : 'sm:max-w-md'} rounded-t-xl border border-border-soft bg-surface p-5 shadow-xl sm:rounded-[var(--radius-card)]`}
+        tabIndex={-1}
+        className={cn(
+          'w-full rounded-t-sheet bg-surface p-5 pb-[calc(20px+env(safe-area-inset-bottom,0px))] shadow-lg outline-none sm:rounded-card sm:pb-5',
+          width === 'lg' ? 'sm:max-w-2xl' : 'sm:max-w-md',
+        )}
       >
         <div className="mb-1 flex items-start justify-between gap-3">
-          <h2 className="text-lg font-semibold leading-6">{title}</h2>
+          <h2 className="text-lg leading-6 font-bold">{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Tutup"
-            className="grid h-7 w-7 place-items-center rounded-[var(--radius-control)] text-muted hover:bg-raised"
+            className="grid h-8 w-8 flex-none place-items-center rounded-control text-muted hover:bg-raised hover:text-ink"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
               <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
