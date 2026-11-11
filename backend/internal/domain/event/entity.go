@@ -3,14 +3,26 @@ package event
 
 import (
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
 
+// Alur status versi 2: draft -> review -> published -> closed. Admin bisa
+// mengembalikan review ke draft, atau membatalkan event published. Status
+// "open" versi 1 sudah dimigrasi jadi published.
 const (
-	StatusDraft  = "draft"
-	StatusOpen   = "open"
-	StatusClosed = "closed"
+	StatusDraft     = "draft"
+	StatusReview    = "review"
+	StatusPublished = "published"
+	StatusClosed    = "closed"
+	StatusCancelled = "cancelled"
+)
+
+// Siapa yang menanggung biaya layanan.
+const (
+	FeeBearerCustomer  = "customer"
+	FeeBearerOrganizer = "organizer"
 )
 
 type Event struct {
@@ -29,6 +41,18 @@ type Event struct {
 	ServiceSeconds int32
 	WaitingCount   int32
 	Status         string
+
+	// OrganizerID kosong untuk event versi 1 yang dibuat langsung oleh admin mal.
+	OrganizerID     *uuid.UUID
+	Description     string
+	PosterURL       string
+	SaleStartsAt    *time.Time
+	SaleEndsAt      *time.Time
+	RejectionReason *string
+	FeeBearer       string
+	// FeePercentBP dalam basis poin: 250 artinya 2,5%.
+	FeePercentBP int32
+	FeeFlat      int64
 }
 
 // SlotStarts menghasilkan jam mulai setiap slot untuk satu event.

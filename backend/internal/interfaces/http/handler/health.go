@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/RafiAkem/antay/backend/internal/domain/shared"
 	"github.com/RafiAkem/antay/backend/internal/interfaces/http/response"
 )
 
@@ -49,9 +50,11 @@ func writeCheck(w http.ResponseWriter, status int, body checkResponse) {
 	_ = json.NewEncoder(w).Encode(body)
 }
 
+func nowStamp() string { return time.Now().In(shared.Jakarta).Format(time.RFC3339) }
+
 func (h *Health) Live(w http.ResponseWriter, _ *http.Request) {
 	writeCheck(w, http.StatusOK, checkResponse{
-		Status: "UP", Service: serviceName, Version: h.version, Timestamp: time.Now().Format(time.RFC3339),
+		Status: "UP", Service: serviceName, Version: h.version, Timestamp: nowStamp(),
 	})
 }
 
@@ -67,7 +70,7 @@ func (h *Health) Ready(w http.ResponseWriter, r *http.Request) {
 		Status:    overall,
 		Service:   serviceName,
 		Version:   h.version,
-		Timestamp: time.Now().Format(time.RFC3339),
+		Timestamp: nowStamp(),
 		Checks:    map[string]string{"database": dbStatus},
 	})
 }

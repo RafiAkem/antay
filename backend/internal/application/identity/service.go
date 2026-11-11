@@ -1,4 +1,4 @@
-// Package identity melayani login petugas dan admin.
+// Package identity melayani login akun internal: petugas, admin, dan organizer.
 package identity
 
 import (
@@ -44,7 +44,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (user.User,
 	if !s.passwords.Matches(u.PasswordHash, password) {
 		return user.User{}, "", ErrInvalidCredentials
 	}
-	token, err := s.tokens.Issue(user.Session{UserID: u.ID, Role: u.Role})
+	token, err := s.tokens.Issue(user.Session{UserID: u.ID, Role: u.Role, OrganizerID: u.OrganizerID})
 	if err != nil {
 		return user.User{}, "", err
 	}
