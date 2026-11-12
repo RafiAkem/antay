@@ -97,6 +97,13 @@ func TestWebPHeaders(t *testing.T) {
 	if _, _, err := WebPSize(webpVP8X(1200, 1600)[:25]); !errors.Is(err, ErrUnsupportedType) {
 		t.Errorf("header terpotong harus ditolak, dapat %v", err)
 	}
+	// 16-19 byte lolos isWebP tapi belum punya payload chunk; dulu ini panic
+	// karena potongan mulai di offset 20.
+	for _, n := range []int{16, 18, 19} {
+		if _, _, err := WebPSize(webpVP8X(1200, 1600)[:n]); !errors.Is(err, ErrUnsupportedType) {
+			t.Errorf("header %d byte harus ditolak, dapat %v", n, err)
+		}
+	}
 }
 
 func TestInspectLimits(t *testing.T) {

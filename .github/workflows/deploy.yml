@@ -43,6 +43,11 @@ jobs:
 
       - name: Build frontend
         working-directory: frontend
+        env:
+          # Tombol masuk sekali ketuk untuk akun demo hanya untuk lokal dan
+          # panggung demo. Build produksi mematikannya supaya sandi seed tidak
+          # ikut ke bundle yang diunduh siapa pun.
+          VITE_DEMO_LOGIN: 'false'
         run: |
           npm ci --no-audit --no-fund
           npm run build
@@ -99,6 +104,9 @@ jobs:
               grep -q \"\\\"version\\\":\\\"$VERSION\\\"\" /tmp/ready.json
               grep -q '\"database\":\"UP\"' /tmp/ready.json
               curl -sf -o /dev/null http://127.0.0.1:$PORT/public/v1/events
+              test \"\$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:$PORT/customer/v1/me)\" = 401
+              test \"\$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:$PORT/media/tidak-ada.jpg)\" = 404
+              test -d $APP_DIR/uploads
               test -f $WEB_ROOT/index.html
               test -n \"\$(ls $WEB_ROOT/assets/*.js)\"
               echo 'artifacts and API verified'
