@@ -1,10 +1,10 @@
-<title>Antay ERD</title>
+<title>SummaPass ERD</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
 /* Layout: users on top, events and tickets below it, crow's-foot lines drawn from the real card positions; rules listed underneath.
-   Light only by choice, same palette as Antay's UI and the system map. */
+   Light only by choice, same palette as SummaPass's UI and the system map. */
 :root {
   --ground: #f6f8fe;
   --surface: #ffffff;
@@ -78,7 +78,7 @@ tr.fkrow td { background: var(--tint-50); }
   <section class="frame">
     <div class="top">
       <div>
-        <div class="eyebrow">Antay · PostgreSQL 17</div>
+        <div class="eyebrow">SummaPass · PostgreSQL 17</div>
         <h1 data-id="Empat tabel, satu database">Four tables, one database</h1>
         <p class="lede" data-id="Ini skema dari migrasi di <code>backend/internal/infrastructure/postgres/migrations/</code>. API menjalankannya sendiri saat start (<code>AUTO_MIGRATE=true</code>), jadi server produksi hanya butuh database PostgreSQL kosong dan <code>DATABASE_URL</code> yang mengarah ke sana.">This is the schema from the migrations in <code>backend/internal/infrastructure/postgres/migrations/</code>. The API applies them on start (<code>AUTO_MIGRATE=true</code>), so the production server only needs an empty PostgreSQL database and a <code>DATABASE_URL</code> pointing at it.</p>
       </div>

@@ -1,11 +1,11 @@
-# Arah UI Antay v2: marketplace event
+# Arah UI SummaPass v2: marketplace event
 
 Dokumen ini kontrak visual untuk semua yang mengerjakan frontend. Kalau ragu,
 ikuti dokumen ini; kalau dokumen ini salah, ubah dokumennya dulu baru kodenya.
 
 Acuan gayanya marketplace event modern: beranda per kota, kartu bergambar,
 halaman event panjang, dan alur beli yang pendek. Yang diambil adalah susunan
-dan cara kerjanya; identitas visual tetap milik Antay.
+dan cara kerjanya; identitas visual tetap milik SummaPass.
 
 ## Prinsip
 
@@ -33,7 +33,7 @@ Token tetap tinggal di `frontend/src/styles/tokens.css`. Perubahan dari v1:
 | `--color-faint` | `#8a99a3` | Placeholder, teks nonaktif |
 | `--color-border-soft` | `#e4e8eb` | Garis kartu dan pemisah |
 | `--color-control` | `#ccd2d8` | Garis input |
-| `--color-accent` | `#1747e6` | **Tetap biru Antay**, satu-satunya aksen |
+| `--color-accent` | `#1747e6` | **Tetap biru SummaPass**, satu-satunya aksen |
 | `--color-accent-ink` | `#0f2e99` | Teks di atas tint |
 | `--color-tint-50/100/200` | tetap | Latar terpilih, stepper |
 | `--color-promo` | `#d6004c` | Diskon dan harga promo. Hanya untuk diskon |

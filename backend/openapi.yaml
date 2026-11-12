@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Antay API
+  title: SummaPass API
   version: dev
   description: |
     API penukaran tiket dan antrean event. Respons sukses memakai envelope

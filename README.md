@@ -1,6 +1,8 @@
-# Antay
+# SummaPass
 
 *Ngantri dengan santai.* Sistem penukaran tiket dan antrean untuk event di Summarecon Mall Bandung. Versi ini menggantikan prototipe satu berkas dengan backend Go, database PostgreSQL, dan frontend React.
+
+SummaPass artinya pass untuk masuk ke event di Summaba (Summarecon Mall Bandung). Dulu proyek ini bernama Antay, jadi nama repo, modul Go, cookie, dan database masih memakai `antay`. Itu sengaja dibiarkan supaya sesi, deploy, dan data yang sudah jalan tidak putus.
 
 Prototipe aslinya tetap ada di branch `prototype` (`loket-pintar.html` + `server.mjs`).
 

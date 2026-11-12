@@ -32,7 +32,7 @@ func NewHealth(db Pinger, version string) *Health {
 
 // Root menjawab GET / supaya mudah mengecek API hidup dari browser.
 func (h *Health) Root(w http.ResponseWriter, r *http.Request) {
-	response.OK(w, r, "Antay API", map[string]string{"service": serviceName, "version": h.version})
+	response.OK(w, r, "SummaPass API", map[string]string{"service": serviceName, "version": h.version})
 }
 
 type checkResponse struct {

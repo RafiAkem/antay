@@ -1,4 +1,4 @@
-# Kontrak API Antay
+# Kontrak API SummaPass
 
 Berlaku untuk backend Go (`backend/`) dan frontend React (`frontend/`). Kalau kode
 dan dokumen ini berbeda, kode yang menang, lalu dokumen ini diperbarui di commit

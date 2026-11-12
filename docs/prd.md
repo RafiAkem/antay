@@ -1,4 +1,4 @@
-# PRD Antay: Ticketing dan Penukaran Tiket Summarecon Mall Bandung
+# PRD SummaPass: Ticketing dan Penukaran Tiket Summarecon Mall Bandung
 
 | | |
 |---|---|
@@ -11,8 +11,8 @@
 
 ## 1. Kenapa revisi ini ada
 
-Versi 1 memposisikan Antay sebagai sistem **penukaran** tiket: e-ticket dibeli di
-platform lain (Loket.com), lalu Antay mengatur jam datang ke loket. Brief dari
+Versi 1 memposisikan SummaPass sebagai sistem **penukaran** tiket: e-ticket dibeli di
+platform lain (Loket.com), lalu SummaPass mengatur jam datang ke loket. Brief dari
 Mas Adit (PIC Summarecon, 10 November 2026) menunjukkan masalah utama mereka
 justru ada di **proses beli**:
 
@@ -23,13 +23,15 @@ justru ada di **proses beli**:
 | 03 | Atur diskon, harga setelah diskon dihitung otomatis | Belum ada, kolom harga pun belum ada |
 | 04 | Alur sederhana, nyaman di ponsel | Sebagian, alur pengunjung sudah mobile |
 
-Mas Adit juga mengonfirmasi antre penukaran di lokasi **masih jadi masalah**.
-Jadi Antay versi 2 mencakup perjalanan penuh dalam satu sistem milik mal:
+Antre penukaran di lokasi tidak ada di brief, tapi tim menilainya masih jadi
+masalah, misalnya saat Summaba jadi titik tukar gelang VIP Persib (Januari 2026).
+Bagian ini jadi pembeda, bukan masalah utama yang diminta Summarecon.
+Jadi SummaPass versi 2 mencakup perjalanan penuh dalam satu sistem milik mal:
 
 > **Beli** (kategori, paket, kursi, diskon, bayar) → **e-ticket** → **pilih jam
 > tukar** → **tukar di loket** → **data ke dasbor mal**
 
-Bagian beli menjawab empat kebutuhan di atas. Bagian tukar adalah pembeda Antay
+Bagian beli menjawab empat kebutuhan di atas. Bagian tukar adalah pembeda SummaPass
 dari platform tiket biasa, dan sudah berjalan di versi 1.
 
 ## 2. Tujuan
@@ -498,7 +500,7 @@ bergantung pada kursi. Fase 3 menunggu keduanya hanya di bagian pembuatan pesana
 | Akun pembeli | Wajib | Diskusi tim |
 | Penyelenggara | Peran sendiri | Diskusi tim |
 | Biaya layanan | Diatur per event, dibebankan ke pembeli atau ditanggung penyelenggara | Diskusi tim |
-| Antrean di lokasi | Masih masalah nyata | Konfirmasi Mas Adit |
+| Antrean di lokasi | Masih masalah nyata, jadi pembeda | Penilaian tim, belum dikonfirmasi Summarecon |
 
 ## 11. Yang masih terbuka
 

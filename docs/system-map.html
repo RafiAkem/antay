@@ -1,10 +1,10 @@
-<title>Antay System Map</title>
+<title>SummaPass System Map</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
 /* Layout: one wide framed diagram (cards on a 6-column grid, SVG connectors drawn from their real positions), then the numbered path.
-   Light only by choice, same as Antay's own UI (frontend/src/styles/tokens.css). */
+   Light only by choice, same as SummaPass's own UI (frontend/src/styles/tokens.css). */
 :root {
   --ground: #f6f8fe;
   --surface: #ffffff;
@@ -80,7 +80,7 @@ svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2;
   <section class="frame">
     <div class="top">
       <div>
-        <div class="eyebrow">Antay · Bandung Build Challenge 2026 · Summarecon Mall Bandung</div>
+        <div class="eyebrow">SummaPass · Bandung Build Challenge 2026 · Summarecon Mall Bandung</div>
         <h1 data-id="Satu aplikasi web untuk pengunjung, petugas loket, dan admin mal, satu API Go, dan satu database">One web app for visitors, counter staff and mall admins, one Go API, and one database</h1>
         <p class="lede" data-id="Pengunjung memesan slot jam datang di ponsel dan mendapat kode pendek. Petugas menukar kode itu di loket, dan papan di TV menampilkan antrean serta perkiraan waktu tunggu. Semua layar memakai build React yang sama di balik nginx, semua permintaan API masuk ke satu proses Go, dan semua tiket serta event tersimpan di PostgreSQL.">Visitors book an arrival slot on their phone and get a short code. Staff redeem that code at the counter, and the TV board shows the queue and the expected wait. Every screen is the same React build behind nginx, every API request goes to one Go process, and every ticket and event lives in PostgreSQL.</p>
       </div>
@@ -184,7 +184,7 @@ svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2;
           <!-- column 3: the API -->
           <div class="node dark" id="api" style="grid-column:5;grid-row:1 / span 6">
             <div class="k" data-id="Satu proses · pm2">One process · pm2</div>
-            <div class="t" data-id="API Antay">The Antay API</div>
+            <div class="t" data-id="API SummaPass">The SummaPass API</div>
             <code>Go 1.27 · net/http · :8080</code>
             <ul>
               <li data-id="17 rute dalam tiga grup: public, operational, analytics">17 routes in three groups: public, operational, analytics</li>
