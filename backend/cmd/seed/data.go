@@ -34,7 +34,7 @@ type eventSeed struct {
 	// pekan depan) supaya memakai foto seri itu tanpa menggandakan berkas.
 	media                                               string
 	prefix, name, place, item, requirement, description string
-	// date kosong artinya hari ini di Jakarta, supaya demo selalu punya slot terbuka.
+	// date kosong artinya hari demo loket (lihat demoDay di catalog.go).
 	date                                               string
 	open, close, slotMinutes, capacity, counters, wait int32
 	serviceSeconds                                     int32

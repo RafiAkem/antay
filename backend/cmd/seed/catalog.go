@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -39,13 +40,40 @@ WHERE organizer_id IS NULL AND name = ANY($2::text[])`, acc.organizerID, names)
 	return ids, err
 }
 
-func upsertEvent(ctx context.Context, tx pgx.Tx, spec eventSeed, acc accounts, now time.Time) (uuid.UUID, error) {
-	date := spec.date
-	if date == "" {
-		// Dihitung di Jakarta; kalau pakai zona server (sering UTC), seed yang
-		// dijalankan sebelum jam 07.00 WIB menulis tanggal kemarin.
-		date = now.Format("2006-01-02")
+// demoDay adalah hari demo loket: Senin, 16 November 2026. Tiga event tanpa
+// tanggal di eventSeeds dipasang di hari ini supaya pas presentasi loket,
+// antrean, dan dasbornya hidup. Bisa ditimpa lewat SEED_DEMO_DATE.
+const demoDay = "2026-11-16"
+
+// demoDate memilih tanggal event demo loket. Kalau demoDay sudah lewat, jatuh
+// ke hari ini supaya seed yang dijalankan belakangan tetap punya loket buka.
+func demoDate(now time.Time) string {
+	// Dihitung di Jakarta; kalau pakai zona server (sering UTC), seed yang
+	// dijalankan sebelum jam 07.00 WIB menulis tanggal kemarin.
+	today := now.Format("2006-01-02")
+	if v := envOr("SEED_DEMO_DATE", ""); v != "" {
+		if _, err := time.Parse("2006-01-02", v); err == nil {
+			return v
+		}
+		fmt.Fprintf(os.Stderr, "SEED_DEMO_DATE %q bukan YYYY-MM-DD, dipakai tanggal bawaan\n", v)
 	}
+	// Format YYYY-MM-DD aman dibandingkan sebagai string.
+	if demoDay >= today {
+		return demoDay
+	}
+	return today
+}
+
+// eventDateOf: tanggal tetap dari seed, atau tanggal demo untuk event loket.
+func eventDateOf(spec eventSeed, now time.Time) string {
+	if spec.date != "" {
+		return spec.date
+	}
+	return demoDate(now)
+}
+
+func upsertEvent(ctx context.Context, tx pgx.Tx, spec eventSeed, acc accounts, now time.Time) (uuid.UUID, error) {
+	date := eventDateOf(spec, now)
 	saleEnds, err := saleEndOf(spec, date)
 	if err != nil {
 		return uuid.Nil, err
