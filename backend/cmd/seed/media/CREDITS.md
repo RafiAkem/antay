@@ -19,6 +19,12 @@ parameter `images.unsplash.com`, jadi isinya tetap karya fotografer aslinya.
 | mascot-poster.jpg | Bernd Dittrich | https://unsplash.com/photos/bear-costumes-before-brick-archway-3R2sS8vlVOI |
 | mascot-gallery-1.jpg | Kateryna Hliznitsova | https://unsplash.com/photos/a-person-in-a-bunny-costume-holding-a-candy-cane-NC2i5PRi0t4 |
 | mascot-gallery-2.jpg | Howard Weiss | https://unsplash.com/photos/a-child-touches-a-vibrant-red-lion-dance-costume-NeTjoUMjv2Y |
+| acoustic-poster.jpg | Jacob Padilla | https://unsplash.com/photos/man-playing-guitar-on-stage-hv50fkyit50 |
+| acoustic-gallery-1.jpg | Linda Xu | https://unsplash.com/photos/person-playing-guitar-on-stage-arvoZ9puXv4 |
+| acoustic-gallery-2.jpg | Max Ovcharenko | https://unsplash.com/photos/musicians-performing-on-dark-concert-stage-cjaVtHwS-Y8 |
+| culinary-poster.jpg | James Lo | https://unsplash.com/photos/crowded-street-market-at-night-with-lanterns-prZR_BQiZzU |
+| culinary-gallery-1.jpg | MChe Lee | https://unsplash.com/photos/night-market-street-with-food-stalls-mLkHLNuCYOY |
+| culinary-gallery-2.jpg | Jacky Watt | https://unsplash.com/photos/night-market-with-red-lanterns-and-stalls-BJ7rkGvAl6g |
 
 Foto-foto ini hanya untuk data demo. Kalau aplikasinya dipakai untuk acara
 sungguhan, ganti dengan foto resmi dari penyelenggara.

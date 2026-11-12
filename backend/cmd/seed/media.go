@@ -50,11 +50,12 @@ func seedMedia(ctx context.Context, tx pgx.Tx, ids map[string]uuid.UUID) (int, e
 		return 0, fmt.Errorf("membuat UPLOAD_DIR: %w", err)
 	}
 
+	targets := mediaTargets(ids)
 	added := 0
-	gallerySort := map[string]int32{}
+	gallerySort := map[uuid.UUID]int32{}
 	for _, m := range entries {
-		eventID, ok := ids[m.Event]
-		if !ok || (m.Kind != "poster" && m.Kind != "gallery") || m.Width <= 0 || m.Height <= 0 {
+		eventIDs := targets[m.Event]
+		if len(eventIDs) == 0 || (m.Kind != "poster" && m.Kind != "gallery") || m.Width <= 0 || m.Height <= 0 {
 			fmt.Fprintf(os.Stderr, "lewati media %q: event, kind, atau ukuran tidak dikenal\n", m.File)
 			continue
 		}
@@ -77,37 +78,67 @@ func seedMedia(ctx context.Context, tx pgx.Tx, ids map[string]uuid.UUID) (int, e
 			continue
 		}
 
-		name := safeName(base, ext, eventID)
-		if err := copyOnce(src, filepath.Join(uploadDir, name), info.Size()); err != nil {
-			return added, fmt.Errorf("menyalin %s: %w", base, err)
-		}
-		var sort int32
-		if m.Kind == "gallery" {
-			sort = gallerySort[m.Event]
-			gallerySort[m.Event]++
-		}
-		// Tanpa target ON CONFLICT supaya dua index unik ikut aman: nama berkas
-		// dan satu poster per event.
-		tag, err := tx.Exec(ctx, `
-INSERT INTO event_images (event_id, kind, file_name, content_type, width, height, size_bytes, alt, sort_order)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-ON CONFLICT DO NOTHING`,
-			eventID, m.Kind, name, ctype, m.Width, m.Height, int32(info.Size()), m.Alt, sort)
-		if err != nil {
-			return added, fmt.Errorf("mencatat %s: %w", base, err)
-		}
-		added += int(tag.RowsAffected())
-		if m.Kind == "poster" {
-			// Poster yang sudah diganti penyelenggara tidak ditimpa.
-			url := "/media/" + name
-			if _, err := tx.Exec(ctx, `
-UPDATE events SET poster_url = $1, updated_at = now()
-WHERE id = $2 AND (poster_url = '' OR poster_url = $1)`, url, eventID); err != nil {
+		for _, eventID := range eventIDs {
+			var sort int32
+			if m.Kind == "gallery" {
+				sort = gallerySort[eventID]
+				gallerySort[eventID]++
+			}
+			n, err := attachImage(ctx, tx, m, eventID, src, base, ext, ctype, info.Size(), uploadDir, sort)
+			if err != nil {
 				return added, err
 			}
+			added += n
 		}
 	}
 	return added, nil
+}
+
+// mediaTargets memetakan kunci media di manifest ke semua event yang memakainya.
+// Satu foto bisa dipakai beberapa edisi dari seri yang sama.
+func mediaTargets(ids map[string]uuid.UUID) map[string][]uuid.UUID {
+	out := map[string][]uuid.UUID{}
+	for _, spec := range eventSeeds {
+		id, ok := ids[spec.key]
+		if !ok {
+			continue
+		}
+		key := spec.media
+		if key == "" {
+			key = spec.key
+		}
+		out[key] = append(out[key], id)
+	}
+	return out
+}
+
+// attachImage menyalin satu foto ke UPLOAD_DIR untuk satu event lalu mencatatnya.
+func attachImage(ctx context.Context, tx pgx.Tx, m mediaEntry, eventID uuid.UUID,
+	src, base, ext, ctype string, size int64, uploadDir string, sort int32) (int, error) {
+	name := safeName(base, ext, eventID)
+	if err := copyOnce(src, filepath.Join(uploadDir, name), size); err != nil {
+		return 0, fmt.Errorf("menyalin %s: %w", base, err)
+	}
+	// Tanpa target ON CONFLICT supaya dua index unik ikut aman: nama berkas
+	// dan satu poster per event.
+	tag, err := tx.Exec(ctx, `
+INSERT INTO event_images (event_id, kind, file_name, content_type, width, height, size_bytes, alt, sort_order)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+ON CONFLICT DO NOTHING`,
+		eventID, m.Kind, name, ctype, m.Width, m.Height, int32(size), m.Alt, sort)
+	if err != nil {
+		return 0, fmt.Errorf("mencatat %s: %w", base, err)
+	}
+	if m.Kind == "poster" {
+		// Poster yang sudah diganti penyelenggara tidak ditimpa.
+		url := "/media/" + name
+		if _, err := tx.Exec(ctx, `
+UPDATE events SET poster_url = $1, updated_at = now()
+WHERE id = $2 AND (poster_url = '' OR poster_url = $1)`, url, eventID); err != nil {
+			return 0, err
+		}
+	}
+	return int(tag.RowsAffected()), nil
 }
 
 // safeName membuat nama yang lolos CHECK event_images (^[a-z0-9-]+\.(jpg|png|webp)$).
