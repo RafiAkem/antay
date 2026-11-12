@@ -25,7 +25,9 @@ func New(events event.Repository, clock shared.Clock) *Service {
 	return &Service{events: events, clock: clock}
 }
 
-// Create membuat event untuk hari ini dan langsung membukanya.
+// Create membuat event untuk hari ini dan langsung menayangkannya. Ini masih
+// alur dasbor versi 1; alur draft -> review -> published menyusul di modul
+// event admin, dan sampai saat itu dasbor lama tetap jalan seperti biasa.
 func (s *Service) Create(ctx context.Context, draft event.Draft, createdBy uuid.UUID) (event.Availability, error) {
 	v := draft.Validate()
 	if !v.OK() {
@@ -35,7 +37,7 @@ func (s *Service) Create(ctx context.Context, draft event.Draft, createdBy uuid.
 		Schedule:   v.Schedule,
 		CodePrefix: event.CodePrefix(v.Schedule.Name),
 		Date:       s.clock.Today(),
-		Status:     event.StatusOpen,
+		Status:     event.StatusPublished,
 		CreatedBy:  createdBy,
 	})
 	if err != nil {

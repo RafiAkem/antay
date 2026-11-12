@@ -1,45 +1,33 @@
-import { Link, Outlet } from 'react-router-dom'
-import { BrandMark } from '@/components/navigation/icons'
-import { useSession } from '@/lib/session'
+import { Outlet } from 'react-router-dom'
+import { PublicFooter } from '@/components/navigation/public-footer'
+import { PublicHeader } from '@/components/navigation/public-header'
+import { PublicTabBar } from '@/components/navigation/public-tab-bar'
 
-// Halaman pengunjung dan papan TV: tanpa sidebar, hanya header tipis.
-export function PublicLayout() {
-  const { user } = useSession()
+type PublicLayoutProps = {
+  // Halaman dibuka foto hero full-bleed: header melayang transparan di atasnya.
+  hero?: boolean
+}
 
+// Shell pembeli. Layout ini tidak memberi gutter atau padding atas ke <main>:
+// tiap halaman menyusun Section + Container sendiri. Header non-hero sticky,
+// jadi sudah memakan tempat dan tidak butuh spacer. Header hero fixed, dan
+// memang tidak diberi spacer supaya fotonya naik sampai tepi atas layar.
+// Padding bawah memberi ruang untuk tab bar ponsel beserta safe area.
+export function PublicLayout({ hero = false }: PublicLayoutProps) {
   return (
-    <div className="min-h-full">
-      <header className="sticky top-0 z-10 border-b border-border-soft bg-ground">
-        <div className="mx-auto flex h-[52px] w-full max-w-[1280px] items-center justify-between gap-3 px-[clamp(16px,4vw,40px)]">
-          <Link to="/" className="flex items-center gap-2">
-            <BrandMark size={22} />
-            <b className="text-base font-bold tracking-[-0.01em]">Antay</b>
-          </Link>
-          <div className="flex items-center gap-3 text-[13px]">
-            <span className="hidden text-muted sm:inline">Summarecon Mall Bandung</span>
-            <Link to="/events" className="hidden font-medium text-muted hover:text-ink sm:inline">
-              Event
-            </Link>
-            <Link to="/board" target="_blank" rel="noopener" className="font-medium text-muted hover:text-ink">
-              Papan
-              <span className="sr-only"> (tab baru)</span>
-            </Link>
-            <Link
-              to={user ? (user.role === 'admin' ? '/dashboard' : '/counter') : '/login'}
-              className="font-medium text-accent-ink hover:underline"
-            >
-              {user ? 'Buka loket' : 'Masuk petugas'}
-            </Link>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-[1280px] px-[clamp(16px,4vw,40px)] pt-6 pb-16">
+    <div className="flex min-h-full flex-col overflow-x-clip pb-[calc(var(--spacing-tabbar)+env(safe-area-inset-bottom,0px))] lg:pb-0">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-semibold"
+      >
+        Langsung ke isi
+      </a>
+      <PublicHeader overlay={hero} />
+      <main id="main" className="flex-1">
         <Outlet />
       </main>
-      <footer className="border-t border-border-soft py-6">
-        <div className="mx-auto w-full max-w-[1280px] px-[clamp(16px,4vw,40px)] text-xs leading-[17px] text-muted">
-          Prototipe Bandung Build Challenge 2026. Semua event, nama, dan angka adalah data contoh.
-        </div>
-      </footer>
+      <PublicFooter />
+      <PublicTabBar />
     </div>
   )
 }

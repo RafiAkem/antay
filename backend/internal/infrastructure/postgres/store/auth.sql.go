@@ -12,7 +12,7 @@ import (
 )
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, name, role, is_active, created_at, updated_at FROM users WHERE lower(email) = lower($1) AND is_active
+SELECT id, email, password_hash, name, role, is_active, created_at, updated_at, organizer_id FROM users WHERE lower(email) = lower($1) AND is_active
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -27,12 +27,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrganizerID,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, name, role, is_active, created_at, updated_at FROM users WHERE id = $1 AND is_active
+SELECT id, email, password_hash, name, role, is_active, created_at, updated_at, organizer_id FROM users WHERE id = $1 AND is_active
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -47,6 +48,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrganizerID,
 	)
 	return i, err
 }

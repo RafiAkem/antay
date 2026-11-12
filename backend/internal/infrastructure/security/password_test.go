@@ -34,3 +34,16 @@ func TestMatchesRealHash(t *testing.T) {
 		t.Fatal("kata sandi salah diterima")
 	}
 }
+
+func TestHashUsesDefaultCostAndMatches(t *testing.T) {
+	hash, err := (Bcrypt{}).Hash("rahasia123")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cost, _ := bcrypt.Cost([]byte(hash)); cost != bcrypt.DefaultCost {
+		t.Fatalf("cost = %d, mau %d supaya sama dengan dummyHash", cost, bcrypt.DefaultCost)
+	}
+	if !(Bcrypt{}).Matches(hash, "rahasia123") || (Bcrypt{}).Matches(hash, "salah") {
+		t.Fatal("hash tidak cocok dengan kata sandinya sendiri")
+	}
+}

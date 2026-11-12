@@ -26,16 +26,13 @@ export function useAnalyticsPage() {
   const [summaryAttempt, setSummaryAttempt] = useState(0)
   const [overviewAttempt, setOverviewAttempt] = useState(0)
 
-  const loadEvents = useCallback(async (selectId?: string) => {
+  const loadEvents = useCallback(async () => {
     setEventsLoading(true)
     setEventsError(null)
     try {
       const list = await fetchStaffEvents()
       setEvents(list)
-      setEventId((current) => {
-        const wanted = selectId ?? current
-        return list.some((event) => event.id === wanted) ? wanted : (list[0]?.id ?? '')
-      })
+      setEventId((current) => (list.some((event) => event.id === current) ? current : (list[0]?.id ?? '')))
     } catch (cause) {
       setEvents([])
       setEventsError(messageOf(cause))
@@ -92,10 +89,6 @@ export function useAnalyticsPage() {
     }
   }, [overviewAttempt])
 
-  const handleCreated = useCallback(async (event: EventDetail) => {
-    await loadEvents(event.id)
-  }, [loadEvents])
-
   return {
     events,
     eventsLoading,
@@ -111,6 +104,5 @@ export function useAnalyticsPage() {
     overviewLoading,
     overviewError,
     retryOverview: () => setOverviewAttempt((value) => value + 1),
-    handleCreated,
   }
 }

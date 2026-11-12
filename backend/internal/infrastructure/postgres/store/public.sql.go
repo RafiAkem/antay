@@ -125,7 +125,7 @@ func (q *Queries) EventSlotBookings(ctx context.Context, eventIds []uuid.UUID) (
 }
 
 const getOpenEvent = `-- name: GetOpenEvent :one
-SELECT id, code_prefix, name, place, item, requirement, event_date, open_minutes, close_minutes, slot_minutes, slot_capacity, counter_count, service_seconds, waiting_count, status, created_by, created_at, updated_at FROM events WHERE id = $1 AND status = 'open'
+SELECT id, code_prefix, name, place, item, requirement, event_date, open_minutes, close_minutes, slot_minutes, slot_capacity, counter_count, service_seconds, waiting_count, status, created_by, created_at, updated_at, organizer_id, description, poster_url, sale_starts_at, sale_ends_at, fee_bearer, fee_percent_bp, fee_flat, rejection_reason, submitted_at, published_at FROM events WHERE id = $1 AND status = 'published'
 `
 
 func (q *Queries) GetOpenEvent(ctx context.Context, id uuid.UUID) (Event, error) {
@@ -150,6 +150,17 @@ func (q *Queries) GetOpenEvent(ctx context.Context, id uuid.UUID) (Event, error)
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrganizerID,
+		&i.Description,
+		&i.PosterUrl,
+		&i.SaleStartsAt,
+		&i.SaleEndsAt,
+		&i.FeeBearer,
+		&i.FeePercentBp,
+		&i.FeeFlat,
+		&i.RejectionReason,
+		&i.SubmittedAt,
+		&i.PublishedAt,
 	)
 	return i, err
 }
@@ -222,8 +233,8 @@ func (q *Queries) GetTicketByCode(ctx context.Context, code string) (GetTicketBy
 }
 
 const listOpenEvents = `-- name: ListOpenEvents :many
-SELECT id, code_prefix, name, place, item, requirement, event_date, open_minutes, close_minutes, slot_minutes, slot_capacity, counter_count, service_seconds, waiting_count, status, created_by, created_at, updated_at FROM events
-WHERE event_date = $1 AND status = 'open'
+SELECT id, code_prefix, name, place, item, requirement, event_date, open_minutes, close_minutes, slot_minutes, slot_capacity, counter_count, service_seconds, waiting_count, status, created_by, created_at, updated_at, organizer_id, description, poster_url, sale_starts_at, sale_ends_at, fee_bearer, fee_percent_bp, fee_flat, rejection_reason, submitted_at, published_at FROM events
+WHERE event_date = $1 AND status = 'published'
 ORDER BY open_minutes, name
 `
 
@@ -255,6 +266,17 @@ func (q *Queries) ListOpenEvents(ctx context.Context, eventDate string) ([]Event
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.OrganizerID,
+			&i.Description,
+			&i.PosterUrl,
+			&i.SaleStartsAt,
+			&i.SaleEndsAt,
+			&i.FeeBearer,
+			&i.FeePercentBp,
+			&i.FeeFlat,
+			&i.RejectionReason,
+			&i.SubmittedAt,
+			&i.PublishedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -267,7 +289,7 @@ func (q *Queries) ListOpenEvents(ctx context.Context, eventDate string) ([]Event
 }
 
 const lockEvent = `-- name: LockEvent :one
-SELECT id FROM events WHERE id = $1 AND status = 'open' FOR UPDATE
+SELECT id FROM events WHERE id = $1 AND status = 'published' FOR UPDATE
 `
 
 func (q *Queries) LockEvent(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {

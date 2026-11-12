@@ -1,6 +1,8 @@
-# Antay
+# SummaPass
 
-*Ngantay mah santai.* Sistem penukaran tiket dan antrean untuk event di Summarecon Mall Bandung. Versi ini menggantikan prototipe satu berkas dengan backend Go, database PostgreSQL, dan frontend React.
+*Ngantri dengan santai.* Sistem penukaran tiket dan antrean untuk event di Summarecon Mall Bandung. Versi ini menggantikan prototipe satu berkas dengan backend Go, database PostgreSQL, dan frontend React.
+
+SummaPass artinya pass untuk masuk ke event di Summaba (Summarecon Mall Bandung). Dulu proyek ini bernama Antay, jadi nama repo, modul Go, cookie, dan database masih memakai `antay`. Itu sengaja dibiarkan supaya sesi, deploy, dan data yang sudah jalan tidak putus.
 
 Prototipe aslinya tetap ada di branch `prototype` (`loket-pintar.html` + `server.mjs`).
 
@@ -103,13 +105,15 @@ Perintah lain: `make seed`, `make api`, `make web`, `make build`, `make test`, `
 API membatasi request per IP, jadi nginx harus meneruskan IP asli pengunjung. Tanpa header ini batas dilewati sama sekali (lebih aman daripada semua pengunjung berbagi satu kuota), dan tiket bisa dipesan tanpa batas:
 
 ```nginx
-location ~ ^/(public|operational|analytics|csrf|health/(live|ready|startup)) {
+location ~ ^/(public|operational|analytics|customer|media|csrf|health/(live|ready|startup)) {
     proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 }
 ```
+
+`/customer` (sesi pembeli, quote pesanan) dan `/media` (poster serta galeri event) wajib ikut diteruskan, kalau tidak login pembeli dan gambar event jatuh ke handler SPA. Upload poster dibatasi 5 MiB di aplikasi, jadi naikkan juga `client_max_body_size` di server block itu (misal `6m`), karena bawaan nginx 1 MB.
 
 Header itu hanya dipercaya bila koneksi datang dari loopback atau jaringan privat (`10.x`, `172.16–31.x`, `192.168.x`, `fc00::/7`), jadi nginx boleh di mesin yang sama atau di container/host internal, asal port API tidak dibuka langsung ke jaringan privat yang dipakai pengunjung. `/health/dependencies` sengaja tidak diteruskan karena hanya untuk internal. Di produksi juga set `COOKIE_SECURE=true` karena situsnya HTTPS.
 

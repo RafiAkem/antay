@@ -26,3 +26,13 @@ func TestMinutesOfRejectsAnythingButHHMM(t *testing.T) {
 		}
 	}
 }
+
+func TestJakartaClockIsUTCPlus7(t *testing.T) {
+	now := NewJakartaClock()()
+	if now.Location() != Jakarta {
+		t.Fatalf("lokasi jam = %v, mau Asia/Jakarta", now.Location())
+	}
+	if _, offset := now.Zone(); offset != 7*60*60 {
+		t.Fatalf("offset Jakarta = %d detik, mau 25200", offset)
+	}
+}

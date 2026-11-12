@@ -16,3 +16,13 @@ func (Bcrypt) Matches(hash, password string) bool {
 	}
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }
+
+// Hash memakai cost yang sama dengan dummyHash, supaya cek kata sandi untuk
+// email asing tetap selama cek untuk akun sungguhan.
+func (Bcrypt) Hash(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
+}

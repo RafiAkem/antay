@@ -38,5 +38,6 @@ func oneUser(row store.User, err error) (user.User, error) {
 		PasswordHash: row.PasswordHash,
 		Name:         row.Name,
 		Role:         row.Role,
+		OrganizerID:  uuidPtr(row.OrganizerID),
 	}, nil
 }

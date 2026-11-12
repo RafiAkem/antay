@@ -6,10 +6,30 @@ package shared
 import (
 	"fmt"
 	"time"
+	// Data zona waktu ikut di-embed ke binary. Image container minimal sering
+	// tidak punya /usr/share/zoneinfo, dan tanpa ini LoadLocation gagal di sana.
+	_ "time/tzdata"
 )
+
+// Jakarta adalah zona waktu semua jam event dan slot. Server bisa saja jalan
+// di UTC, jadi "hari ini" dan "jam sekarang" tidak boleh ikut zona server.
+var Jakarta = mustLoadLocation("Asia/Jakarta")
+
+func mustLoadLocation(name string) *time.Location {
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		panic("zona waktu " + name + " tidak bisa dimuat: " + err.Error())
+	}
+	return loc
+}
 
 // Clock adalah sumber waktu yang bisa diganti saat tes.
 type Clock func() time.Time
+
+// NewJakartaClock adalah jam yang dipakai aplikasi sungguhan.
+func NewJakartaClock() Clock {
+	return func() time.Time { return time.Now().In(Jakarta) }
+}
 
 func (c Clock) Today() string { return c().Format("2006-01-02") }
 

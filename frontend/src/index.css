@@ -7,11 +7,18 @@
     height: 100%;
   }
 
+  html {
+    background: var(--color-ground);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* 14px masih enak dibaca di ponsel 360px dan menjaga halaman tetap rapat. */
   body {
     background: var(--color-ground);
     color: var(--color-ink);
     font: 400 14px/20px var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
   }
 
   h1, h2, h3, p {
@@ -43,7 +50,7 @@
   }
   ::-webkit-scrollbar-thumb {
     background: var(--color-control);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     border: 2px solid var(--color-ground);
   }
   ::-webkit-scrollbar-track {

@@ -1,6 +1,8 @@
-import { Link } from 'react-router-dom'
+import { LinkButton } from '@/components/admin/shared/link-button'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Container } from '@/components/ui/container'
+import { Section } from '@/components/ui/section'
+import { Heading, Paragraph } from '@/components/ui/text'
 
 const FALLBACK_MESSAGE = 'Data halaman ini tidak bisa dimuat. Periksa koneksi lalu coba lagi.'
 
@@ -15,22 +17,23 @@ export function ErrorPage({
   onRetry?: () => void
 }) {
   return (
-    <Card className="mx-auto w-full max-w-lg">
-      <div className="grid justify-items-start gap-3">
-        <div className="grid gap-1">
-          <h1 className="text-lg font-semibold">{title}</h1>
-          <p className="text-sm leading-5 text-muted">{message || FALLBACK_MESSAGE}</p>
+    <Section>
+      <Container size="narrow">
+        <div role="alert" className="grid justify-items-start gap-4 rounded-card border border-border-soft bg-surface p-5">
+          <div className="grid gap-1.5">
+            <Heading level={1} size="lg">
+              {title}
+            </Heading>
+            <Paragraph tone="muted">{message || FALLBACK_MESSAGE}</Paragraph>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {onRetry ? <Button onClick={onRetry}>Coba lagi</Button> : null}
+            <LinkButton to="/events" variant="ghost">
+              Lihat daftar event
+            </LinkButton>
+          </div>
         </div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {onRetry ? <Button onClick={onRetry}>Coba lagi</Button> : null}
-          <Link
-            to="/events"
-            className="inline-flex h-[38px] items-center justify-center rounded-[var(--radius-control)] border border-control bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:bg-raised"
-          >
-            Lihat daftar event
-          </Link>
-        </div>
-      </div>
-    </Card>
+      </Container>
+    </Section>
   )
 }

@@ -20,6 +20,23 @@ function stepFor(max: number): number {
   return 50
 }
 
+// Legenda ditaruh di sebelah judul kartu, bukan di dalam SVG, supaya tetap
+// terbaca saat grafiknya mengecil di ponsel.
+export function SlotChartLegend() {
+  return (
+    <span className="flex items-center gap-3">
+      <span className="flex items-center gap-1.5">
+        <i className="inline-block h-2 w-3 rounded-tag bg-tint-200" aria-hidden="true" />
+        terdaftar
+      </span>
+      <span className="flex items-center gap-1.5">
+        <i className="inline-block h-2 w-3 rounded-tag bg-accent" aria-hidden="true" />
+        sudah ditukar
+      </span>
+    </span>
+  )
+}
+
 export function SlotChart({ summary }: { summary: AnalyticsSummary }) {
   const { event, slots, totals } = summary
   if (slots.length === 0) return null
@@ -42,13 +59,13 @@ export function SlotChart({ summary }: { summary: AnalyticsSummary }) {
   return (
     <svg
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      className="block h-auto w-full"
+      className="num block h-auto w-full"
       role="img"
       aria-label={`Kuota per slot ${event.name}: ${slots.length} slot, ${totals.registered} tiket terdaftar dan ${totals.redeemed} sudah ditukar, kapasitas ${capacity} orang per slot.`}
     >
       {ticks.map((value) => (
         <g key={value}>
-          <line x1={LEFT} x2={WIDTH - RIGHT} y1={y(value)} y2={y(value)} stroke="var(--color-rule)" />
+          <line x1={LEFT} x2={WIDTH - RIGHT} y1={y(value)} y2={y(value)} stroke="var(--color-border-soft)" />
           <text x={LEFT - 8} y={y(value) + 4} textAnchor="end" fontSize={11} fill="var(--color-muted)">
             {value}
           </text>
