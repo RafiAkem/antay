@@ -24,8 +24,8 @@ export function AppLayout() {
     <div className="grid min-h-full grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)]">
       <aside className="hidden border-r border-border-soft px-3 pt-5 pb-4 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col">
         <div className="flex items-center gap-2.5 px-2">
-          <BrandMark />
-          <b className="text-[18px] font-bold tracking-[-0.01em]">Antay</b>
+          <BrandMark size={24} />
+          <b className="text-[18px] font-bold tracking-[-0.01em]">SummaPass</b>
         </div>
         <div className="grid gap-0.5 px-2 pt-1.5 pb-4 text-[13px] leading-[18px] text-muted">
           <strong className="text-sm font-semibold text-ink">{user?.name ?? ''}</strong>
@@ -58,7 +58,7 @@ export function AppLayout() {
           ))}
         </nav>
         <div className="mt-auto grid gap-3 border-t border-border-soft px-2 pt-3">
-          <p className="text-xs leading-[17px] text-muted">Prototipe Bandung Build Challenge 2026. Data contoh, bukan layanan resmi.</p>
+          <p className="text-xs leading-[17px] text-muted">SummaPass · Summarecon Mall Bandung. Ngantri dengan santai.</p>
           <button
             type="button"
             onClick={handleLogout}
@@ -72,8 +72,8 @@ export function AppLayout() {
       <div className="min-w-0">
         <header className="sticky top-0 z-10 flex h-[52px] items-center justify-between gap-3 border-b border-border-soft bg-surface px-4 lg:hidden">
           <div className="flex items-center gap-2">
-            <BrandMark size={22} />
-            <b className="text-base font-bold">Antay</b>
+            <BrandMark size={20} />
+            <b className="text-base font-bold">SummaPass</b>
           </div>
           <button type="button" onClick={handleLogout} className="text-[13px] font-semibold text-muted">
             Keluar

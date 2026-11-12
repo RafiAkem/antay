@@ -15,7 +15,7 @@ export function OrderPending({ orderId }: { orderId: string }) {
           Detail pesanan akan tersedia setelah pembayaran aktif.
         </b>
         <p className="max-w-[56ch] text-sm leading-[21px] text-muted">
-          Pembayaran di Antay belum dibuka, jadi belum ada pesanan yang bisa ditampilkan di sini.
+          Pembayaran di SummaPass belum dibuka, jadi belum ada pesanan yang bisa ditampilkan di sini.
         </p>
       </div>
       <ButtonLink to="/tickets" variant="ghost" small>

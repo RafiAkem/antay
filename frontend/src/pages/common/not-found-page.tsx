@@ -17,9 +17,9 @@ export function NotFoundPage() {
     <main className="grid min-h-dvh place-items-center bg-ground py-10">
       <Container size="narrow">
         <div className="grid justify-items-start gap-5">
-          <Link to="/" className="flex items-center gap-2.5" aria-label="Antay, ke beranda">
+          <Link to="/" className="flex items-center gap-2.5" aria-label="SummaPass, ke beranda">
             <BrandMark />
-            <b className="text-lg font-bold tracking-[-0.01em]">Antay</b>
+            <b className="text-lg font-bold tracking-[-0.01em]">SummaPass</b>
           </Link>
           <p aria-hidden="true" className="font-mono text-[clamp(64px,14vw,112px)] leading-none font-bold text-tint-200">
             404

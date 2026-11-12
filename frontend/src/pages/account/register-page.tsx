@@ -17,7 +17,7 @@ export function RegisterPage() {
   return (
     <AuthCard
       title="Daftar akun"
-      intro="Cukup sekali. Semua tiket yang kamu beli di Antay tersimpan di akun ini."
+      intro="Cukup sekali. Semua tiket yang kamu beli di SummaPass tersimpan di akun ini."
       footer={
         <AuthFooterLink prompt="Sudah punya akun?" to={withNext('/account/login', next)}>
           Masuk

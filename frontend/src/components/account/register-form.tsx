@@ -103,7 +103,7 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
       </FormField>
 
       <p className="text-[13px] leading-[19px] text-muted">
-        Dengan mendaftar, kamu setuju nomor WhatsApp ini dipakai untuk kabar pesanan saja. Antay tidak pernah
+        Dengan mendaftar, kamu setuju nomor WhatsApp ini dipakai untuk kabar pesanan saja. SummaPass tidak pernah
         meminta nomor KTP.
       </p>
 

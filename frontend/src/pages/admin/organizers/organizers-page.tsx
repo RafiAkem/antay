@@ -15,7 +15,7 @@ export function OrganizersPage() {
         <AdminPageHead
           id="organizers-title"
           title="Penyelenggara"
-          description="Pihak yang menyewa tempat dan menjual tiket lewat Antay. Penyelenggara nonaktif tidak bisa dipilih untuk akun baru."
+          description="Pihak yang menyewa tempat dan menjual tiket lewat SummaPass. Penyelenggara nonaktif tidak bisa dipilih untuk akun baru."
           // Saat daftar kosong, tombol tambah sudah ada di empty state; jangan dobel.
           action={page.loading || page.rows.length > 0 ? <Button onClick={page.openCreate}>Tambah penyelenggara</Button> : null}
         />

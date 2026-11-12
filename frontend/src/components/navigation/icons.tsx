@@ -54,14 +54,18 @@ export function NavIcon({ name, size = 16 }: { name: IconName; size?: number }) 
   )
 }
 
-export function BrandMark({ size = 26 }: { size?: number }) {
+// Logo SummaPass "Notch S": huruf S yang dipotong dari tiket, kedua ujungnya
+// sudut tiket yang dilubangi. Geometri dari docs/brand/summapass-mark-inline.svg.
+// size = tinggi dalam px. Warna ikut currentColor, jadi di atas foto gelap
+// pemanggil cukup memberi text-white (panduan brand: biru tidak dipakai di latar gelap).
+export function BrandMark({ size = 24, className = 'text-accent' }: { size?: number; className?: string }) {
   return (
-    <svg width={size} height={Math.round(size * 0.77)} viewBox="0 0 26 20" aria-hidden="true">
+    <svg width={Math.round((size * 192) / 208)} height={size} viewBox="0 0 192 208" aria-hidden="true" className={className}>
       <path
-        d="M3 1h20a2 2 0 0 1 2 2v4.2a2.8 2.8 0 0 0 0 5.6V17a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-4.2a2.8 2.8 0 0 0 0-5.6V3a2 2 0 0 1 2-2z"
-        fill="var(--color-accent)"
+        fill="currentColor"
+        fillRule="evenodd"
+        d="M72 0H160A32 32 0 0 0 192 32V44H67A19 19 0 0 0 67 82H192V136A72 72 0 0 1 120 208H32A32 32 0 0 0 0 176V164H125A19 19 0 0 0 125 126H0V72A72 72 0 0 1 72 0Z"
       />
-      <path d="M17 4.5v11" className="stroke-white" strokeWidth="1.6" strokeDasharray="2 2" />
     </svg>
   )
 }

@@ -3,7 +3,7 @@ import { Container } from '@/components/ui/container'
 import { Section } from '@/components/ui/section'
 import { Heading } from '@/components/ui/text'
 
-// Pembeda Antay dari platform tiket lain ada di hari-H, bukan di halaman beli.
+// Pembeda SummaPass dari platform tiket lain ada di hari-H, bukan di halaman beli.
 // Band gelap ini sengaja memakai warna malam yang sama dengan papan antrean di
 // area loket, jadi orang yang nanti melihat layarnya sudah kenal tampilannya.
 export function HomeQueueBand() {

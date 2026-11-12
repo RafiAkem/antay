@@ -43,8 +43,8 @@ export function PublicHeader({ overlay }: { overlay: boolean }) {
       )}
       <Container size="wide" className="relative flex h-header items-center gap-6">
         <Link to="/" className="flex flex-none items-center gap-2">
-          <BrandMark size={24} />
-          <b className="text-[17px] font-bold tracking-[-0.01em]">Antay</b>
+          <BrandMark size={22} className={solid ? 'text-accent' : 'text-white'} />
+          <b className="text-[17px] font-bold tracking-[-0.01em]">SummaPass</b>
         </Link>
 
         <nav aria-label="Menu utama" className="hidden h-full items-stretch gap-1 lg:flex">

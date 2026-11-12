@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="SummaPass">
+  <title>SummaPass</title>
+  <path fill="#1747e6" fill-rule="evenodd" d="M48 0H208A48 48 0 0 1 256 48V208A48 48 0 0 1 208 256H48A48 48 0 0 1 0 208V48A48 48 0 0 1 48 0Z"/>
+  <path fill="#ffffff" fill-rule="evenodd" d="M96 48H192A16 16 0 0 0 208 64V80H112A16 16 0 0 0 112 112H208V160A48 48 0 0 1 160 208H64A16 16 0 0 0 48 192V176H144A16 16 0 0 0 144 144H48V96A48 48 0 0 1 96 48Z"/>
+</svg>

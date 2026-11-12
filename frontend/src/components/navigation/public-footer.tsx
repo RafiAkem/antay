@@ -14,7 +14,7 @@ export function PublicFooter() {
     <footer className="border-t border-border-soft bg-surface">
       <Container size="wide" className="grid gap-3 py-6 text-[13px] leading-[19px]">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-          <b className="font-bold text-ink">Antay · Summarecon Mall Bandung</b>
+          <b className="font-bold text-ink">SummaPass · Summarecon Mall Bandung</b>
           <nav aria-label="Tautan lain" className="flex flex-wrap gap-x-5 gap-y-2">
             <Link to="/events" className={LINK}>
               Semua event
@@ -29,7 +29,7 @@ export function PublicFooter() {
           </nav>
         </div>
         <p className="text-xs leading-[17px] text-muted">
-          Prototipe Bandung Build Challenge 2026. Semua event, nama, dan angka adalah data contoh.
+          Ngantri dengan santai. Beli tiket, pilih kursi, lalu tukar di loket sesuai jam yang kamu pilih.
         </p>
       </Container>
     </footer>
