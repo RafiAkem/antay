@@ -18,10 +18,18 @@ type User struct {
 	Email string `json:"email"`
 	Name  string `json:"name"`
 	Role  string `json:"role"`
+	// OrganizerID selalu dikirim, null untuk staff dan admin, supaya frontend
+	// tidak perlu membedakan field hilang dengan field kosong.
+	OrganizerID *string `json:"organizerId"`
 }
 
 func UserOf(u user.User) User {
-	return User{ID: u.ID.String(), Email: u.Email, Name: u.Name, Role: u.Role}
+	out := User{ID: u.ID.String(), Email: u.Email, Name: u.Name, Role: u.Role}
+	if u.OrganizerID != nil {
+		id := u.OrganizerID.String()
+		out.OrganizerID = &id
+	}
+	return out
 }
 
 type Slot struct {

@@ -56,6 +56,16 @@ func eventOf(e store.Event) event.Event {
 		ServiceSeconds: e.ServiceSeconds,
 		WaitingCount:   e.WaitingCount,
 		Status:         e.Status,
+
+		OrganizerID:     uuidPtr(e.OrganizerID),
+		Description:     e.Description,
+		PosterURL:       e.PosterUrl,
+		SaleStartsAt:    timePtr(e.SaleStartsAt),
+		SaleEndsAt:      timePtr(e.SaleEndsAt),
+		RejectionReason: e.RejectionReason,
+		FeeBearer:       e.FeeBearer,
+		FeePercentBP:    e.FeePercentBp,
+		FeeFlat:         e.FeeFlat,
 	}
 }
 

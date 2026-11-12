@@ -11,6 +11,6 @@ export default defineConfig({
   server: {
     port: 5173,
     // Satu origin di dev: cookie sesi dan CSRF tidak perlu CORS.
-    proxy: { '/public': 'http://localhost:8080', '/operational': 'http://localhost:8080', '/analytics': 'http://localhost:8080', '/health': 'http://localhost:8080', '/csrf': 'http://localhost:8080' },
+    proxy: { '/public': 'http://localhost:8080', '/operational': 'http://localhost:8080', '/analytics': 'http://localhost:8080', '/customer': 'http://localhost:8080', '/media': 'http://localhost:8080', '/health': 'http://localhost:8080', '/csrf': 'http://localhost:8080' },
   },
 })

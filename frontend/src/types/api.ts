@@ -1,13 +1,15 @@
 // Bentuk data mengikuti docs/api-contract.md 1:1. Jangan menambah field yang
 // tidak dikirim server.
 
-export type Role = 'staff' | 'admin'
+export type Role = 'staff' | 'admin' | 'organizer'
 
 export type User = {
   id: string
   email: string
   name: string
   role: Role
+  // diisi hanya untuk akun penyelenggara
+  organizerId: string | null
 }
 
 export type Slot = {
@@ -37,7 +39,7 @@ export type EventRef = {
   slotMinutes: number
 }
 
-export type EventStatus = 'draft' | 'open' | 'closed'
+export type EventStatus = 'draft' | 'review' | 'published' | 'closed' | 'cancelled'
 
 export type EventDetail = {
   id: string

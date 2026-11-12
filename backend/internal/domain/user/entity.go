@@ -1,4 +1,5 @@
-// Package user adalah akun petugas dan admin mal. Pengunjung tidak punya akun.
+// Package user adalah akun internal: petugas, admin mal, dan penyelenggara.
+// Pembeli punya akun sendiri di tabel customers, bukan di sini.
 package user
 
 import (
@@ -9,8 +10,9 @@ import (
 )
 
 const (
-	RoleStaff = "staff"
-	RoleAdmin = "admin"
+	RoleStaff     = "staff"
+	RoleAdmin     = "admin"
+	RoleOrganizer = "organizer"
 )
 
 var ErrNotFound = errors.New("pengguna tidak ditemukan")
@@ -21,12 +23,15 @@ type User struct {
 	PasswordHash string
 	Name         string
 	Role         string
+	// OrganizerID hanya terisi untuk role organizer; database menjaganya lewat CHECK.
+	OrganizerID *uuid.UUID
 }
 
 // Session adalah identitas yang dibawa token sesi.
 type Session struct {
-	UserID uuid.UUID
-	Role   string
+	UserID      uuid.UUID
+	Role        string
+	OrganizerID *uuid.UUID
 }
 
 type Repository interface {

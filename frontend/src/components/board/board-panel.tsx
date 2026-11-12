@@ -1,66 +1,70 @@
+import { cn } from '@/components/ui/cn'
 import type { BoardData } from '@/types/api'
+import { BoardSlots } from './board-slots'
 
-function Figure({ label, value, unit }: { label: string; value: number; unit: string }) {
+// Papan dibaca dari sekitar tiga meter, jadi ukuran ditulis dengan clamp
+// berbasis lebar layar: TV 1080p dapat angka sekitar 180px, laptop tetap muat.
+// Angka tunggu dibuat paling besar karena itu yang dicari orang pertama kali.
+function Figure({ label, value, unit, lead = false }: { label: string; value: number; unit: string; lead?: boolean }) {
   return (
-    <div className="grid content-start gap-1 sm:border-l sm:border-board-line sm:pl-6 sm:first:border-l-0 sm:first:pl-0">
-      <span className="text-sm text-board-ink/70 sm:text-base">{label}</span>
-      <strong className="num text-6xl leading-none font-semibold tracking-[-0.03em] sm:text-7xl lg:text-8xl">
+    <div className="grid content-start gap-2 border-board-line sm:border-l sm:pl-[clamp(16px,2.4vw,40px)] sm:first:border-l-0 sm:first:pl-0">
+      <span className="text-[clamp(15px,1.6vw,26px)] leading-tight font-semibold text-board-dim">{label}</span>
+      <strong
+        className={cn(
+          'num leading-[0.9] font-bold tracking-[-0.04em]',
+          lead ? 'text-[clamp(72px,11vw,200px)]' : 'text-[clamp(56px,7.5vw,140px)]',
+        )}
+      >
         {value}
       </strong>
-      <span className="text-sm text-board-ink/70">{unit}</span>
+      <span className="text-[clamp(15px,1.6vw,26px)] text-board-dim">{unit}</span>
     </div>
   )
 }
 
 export function BoardPanel({ data }: { data: BoardData }) {
   const current = data.currentSlot ? `${data.currentSlot.start}-${data.currentSlot.end}` : '-'
-  const next = data.nextOpenSlot
-    ? `${data.nextOpenSlot.start} · sisa ${data.nextOpenSlot.left}`
-    : 'tidak ada'
+  const next = data.nextOpenSlot ? `${data.nextOpenSlot.start} · sisa ${data.nextOpenSlot.left}` : 'tidak ada'
 
   return (
-    <div className="grid gap-7 rounded-[12px] bg-board p-5 text-board-ink sm:p-7 lg:p-9">
-      <div>
-        <span className="num text-sm text-board-ink/70 sm:text-[15px]">
-          {data.event.place} · {data.now}
+    <div className="grid gap-[clamp(24px,4vw,56px)] rounded-card bg-board p-[clamp(20px,4vw,64px)] text-board-ink">
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+        <div className="min-w-0">
+          <span className="text-[clamp(15px,1.6vw,26px)] text-board-dim">{data.event.place}</span>
+          <h2 className="text-[clamp(26px,3.6vw,60px)] leading-[1.1] font-bold tracking-[-0.02em] text-balance">
+            {data.event.name}
+          </h2>
+        </div>
+        <span className="num font-mono text-[clamp(28px,3.6vw,60px)] leading-none font-semibold" aria-label={`Pukul ${data.now}`}>
+          {data.now}
         </span>
-        <h2 className="mt-1 text-2xl leading-8 font-semibold tracking-[-0.01em] sm:text-3xl sm:leading-10">
-          {data.event.name}
-        </h2>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-0">
-        <Figure label="Perkiraan tunggu" value={data.queue.waitMinutes} unit="menit" />
+      <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-[1.3fr_1fr_1fr] sm:gap-0">
+        <div className="col-span-2 sm:col-span-1">
+          <Figure label="Perkiraan tunggu" value={data.queue.waitMinutes} unit="menit" lead />
+        </div>
         <Figure label="Orang antre" value={data.queue.waiting} unit="orang" />
         <Figure label="Loket buka" value={data.event.counterCount} unit="loket" />
       </div>
 
-      <div className="flex flex-wrap gap-x-8 gap-y-2.5 text-base leading-7 text-board-ink/70 sm:text-lg">
-        <span>
-          Melayani slot <b className="num font-semibold text-board-ink">{current}</b>
-        </span>
-        <span>
-          Slot kosong berikutnya <b className="num font-semibold text-board-ink">{next}</b>
-        </span>
-      </div>
-
-      {data.upcoming.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Slot berikutnya">
-          {data.upcoming.slice(0, 4).map((slot) => (
-            <div key={slot.start} className="grid gap-1 rounded-lg bg-board-ink/5 px-4 py-3.5">
-              <b className="num text-2xl leading-7 font-semibold">{slot.start}</b>
-              <span className="num text-sm text-board-ink/70">
-                {slot.left > 0 ? `sisa ${slot.left} dari ${slot.capacity}` : 'penuh'}
-              </span>
-            </div>
-          ))}
+      <dl className="grid gap-x-10 gap-y-3 border-t border-board-line pt-[clamp(16px,2.4vw,32px)] text-[clamp(17px,2vw,32px)] leading-tight sm:flex sm:flex-wrap">
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <dt className="text-board-dim">Melayani slot</dt>
+          <dd className="num font-bold">{current}</dd>
         </div>
-      ) : null}
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <dt className="text-board-dim">Slot kosong berikutnya</dt>
+          <dd className="num font-bold">{next}</dd>
+        </div>
+      </dl>
+
+      <BoardSlots slots={data.upcoming} />
 
       {data.queue.long ? (
-        <div className="rounded-[var(--radius-control)] bg-warning-bg px-5 py-4 text-base leading-6 font-semibold text-warning-ink sm:text-xl sm:leading-7">
+        <p className="rounded-control border-l-8 border-scarce bg-warning-bg px-[clamp(16px,2vw,32px)] py-[clamp(12px,1.6vw,24px)] text-[clamp(17px,2.2vw,36px)] leading-tight font-bold text-warning-ink">
           Antrean panjang. Petugas sedang membuka loket tambahan.
-        </div>
+        </p>
       ) : null}
     </div>
   )

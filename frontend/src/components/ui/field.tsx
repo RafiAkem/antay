@@ -1,4 +1,5 @@
 import type { InputHTMLAttributes, ReactNode } from 'react'
+import { cn } from './cn'
 
 type FieldProps = {
   label: string
@@ -10,10 +11,10 @@ type FieldProps = {
 
 export function Field({ label, hint, error, children, className = '' }: FieldProps) {
   return (
-    <label className={`grid gap-2 text-sm font-medium ${className}`}>
+    <label className={cn('grid gap-1.5 text-[13px] font-semibold', className)}>
       <span>{label}</span>
       {children}
-      {hint ? <span className="text-[13px] font-normal leading-[19px] text-muted">{hint}</span> : null}
+      {hint ? <span className="text-[13px] leading-[19px] font-normal text-muted">{hint}</span> : null}
       {error ? <span className="text-[13px] font-normal text-negative">Periksa isian ini.</span> : null}
     </label>
   )
@@ -21,13 +22,16 @@ export function Field({ label, hint, error, children, className = '' }: FieldPro
 
 type InputProps = InputHTMLAttributes<HTMLInputElement> & { error?: boolean }
 
+// 16px di ponsel supaya Safari iOS tidak memperbesar halaman saat input disentuh.
 export function Input({ error, className = '', ...rest }: InputProps) {
   return (
     <input
       aria-invalid={error || undefined}
-      className={`h-[38px] w-full rounded-[var(--radius-control)] border bg-surface px-3 text-sm placeholder:text-faint ${
-        error ? 'border-negative' : 'border-border-soft'
-      } ${className}`}
+      className={cn(
+        'h-11 w-full rounded-control border bg-surface px-3 text-base font-normal placeholder:text-faint focus:border-accent sm:h-10 sm:text-sm',
+        error ? 'border-negative' : 'border-control',
+        className,
+      )}
       {...rest}
     />
   )

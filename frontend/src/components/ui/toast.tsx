@@ -32,12 +32,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div
         role="status"
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-4 bottom-4 z-[60] flex flex-col items-center gap-2 sm:inset-x-auto sm:right-5 sm:bottom-5 sm:items-end"
+        className="pointer-events-none fixed inset-x-4 bottom-[calc(var(--spacing-tabbar)+env(safe-area-inset-bottom,0px)+12px)] z-[60] flex flex-col items-center gap-2 sm:inset-x-auto sm:right-5 sm:items-end lg:bottom-5"
       >
+        {/* Di bawah lg ada tab bar atau bar beli, jadi toast naik di atasnya. */}
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto w-full max-w-sm rounded-[var(--radius-control)] border px-3.5 py-2.5 text-sm shadow-lg ${
+            className={`pointer-events-auto w-full max-w-sm rounded-control border px-3.5 py-2.5 text-sm font-semibold shadow-lg ${
               toast.tone === 'ok'
                 ? 'border-positive-bg bg-positive-bg text-positive-ink'
                 : toast.tone === 'error'

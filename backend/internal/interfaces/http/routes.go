@@ -28,8 +28,7 @@ func notFound(w nethttp.ResponseWriter, r *nethttp.Request) {
 // registerPublic: halaman pengunjung dan papan antrean, tanpa sesi. Pesan dan
 // batal tiket dibatasi per IP supaya satu skrip tidak bisa menghabiskan kuota slot.
 func registerPublic(mux *nethttp.ServeMux, h Handlers, limit func(nethttp.Handler) nethttp.Handler) {
-	mux.HandleFunc("GET /public/v1/events", h.Public.ListEvents)
-	mux.HandleFunc("GET /public/v1/events/{eventId}", h.Public.GetEvent)
+	// Daftar dan detail event sekarang dilayani katalog v2 (registerStorefrontPublic).
 	mux.HandleFunc("GET /public/v1/events/{eventId}/board", h.Public.GetBoard)
 	mux.Handle("POST /public/v1/tickets", limit(nethttp.HandlerFunc(h.Public.CreateTicket)))
 	mux.HandleFunc("GET /public/v1/tickets/{code}", h.Public.GetTicket)
@@ -38,15 +37,20 @@ func registerPublic(mux *nethttp.ServeMux, h Handlers, limit func(nethttp.Handle
 
 // registerOperational memasang sesi pada semua rute kecuali login. Admin boleh
 // melakukan semua aksi staff; RequireRole memperlakukan admin sebagai super.
+// Organizer juga login lewat sini, jadi rute loket wajib cek role staff, bukan
+// sekadar punya sesi. logout dan me cukup sesi supaya organizer tetap bisa pakai.
 func registerOperational(mux *nethttp.ServeMux, h Handlers, s *middleware.Sessions, loginLimit func(nethttp.Handler) nethttp.Handler) {
-	staff := func(fn nethttp.HandlerFunc) nethttp.Handler { return s.Require(fn) }
+	signedIn := func(fn nethttp.HandlerFunc) nethttp.Handler { return s.Require(fn) }
+	staff := func(fn nethttp.HandlerFunc) nethttp.Handler {
+		return middleware.Chain(fn, s.Require, middleware.RequireRole(user.RoleStaff))
+	}
 	admin := func(fn nethttp.HandlerFunc) nethttp.Handler {
 		return middleware.Chain(fn, s.Require, middleware.RequireRole(user.RoleAdmin))
 	}
 
 	mux.Handle("POST /operational/v1/auth/login", loginLimit(nethttp.HandlerFunc(h.Auth.Login)))
-	mux.Handle("POST /operational/v1/auth/logout", staff(h.Auth.Logout))
-	mux.Handle("GET /operational/v1/auth/me", staff(h.Auth.Me))
+	mux.Handle("POST /operational/v1/auth/logout", signedIn(h.Auth.Logout))
+	mux.Handle("GET /operational/v1/auth/me", signedIn(h.Auth.Me))
 
 	mux.Handle("GET /operational/v1/events", staff(h.Counter.ListEvents))
 	mux.Handle("POST /operational/v1/events", admin(h.Scheduling.CreateEvent))

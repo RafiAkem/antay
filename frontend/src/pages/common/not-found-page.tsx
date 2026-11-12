@@ -1,9 +1,12 @@
 import { Link } from 'react-router-dom'
-import { Card } from '@/components/ui/card'
+import { LinkButton } from '@/components/admin/shared/link-button'
+import { BrandMark } from '@/components/navigation/icons'
+import { Container } from '@/components/ui/container'
+import { Heading, Paragraph } from '@/components/ui/text'
 
 const QUICK_LINKS = [
   { to: '/', label: 'Beranda' },
-  { to: '/events', label: 'Event hari ini' },
+  { to: '/tickets', label: 'Tiket saya' },
   { to: '/board', label: 'Papan antrean' },
   { to: '/login', label: 'Masuk petugas' },
 ]
@@ -11,38 +14,32 @@ const QUICK_LINKS = [
 // Halaman penuh di luar layout, jadi boleh memusatkan diri di layar.
 export function NotFoundPage() {
   return (
-    <div className="grid min-h-screen place-items-center bg-ground px-4 py-10">
-      <Card className="w-full max-w-lg">
-        <div className="grid gap-4">
-          <p aria-hidden="true" className="font-mono text-[64px] font-bold leading-none text-tint-200">
+    <main className="grid min-h-dvh place-items-center bg-ground py-10">
+      <Container size="narrow">
+        <div className="grid justify-items-start gap-5">
+          <Link to="/" className="flex items-center gap-2.5" aria-label="SummaPass, ke beranda">
+            <BrandMark />
+            <b className="text-lg font-bold tracking-[-0.01em]">SummaPass</b>
+          </Link>
+          <p aria-hidden="true" className="font-mono text-[clamp(64px,14vw,112px)] leading-none font-bold text-tint-200">
             404
           </p>
-          <div className="grid gap-1">
-            <h1 className="text-xl font-semibold tracking-[-0.01em]">Halaman tidak ditemukan</h1>
-            <p className="text-sm leading-5 text-muted">
-              Alamat yang kamu buka tidak ada atau salah tulis. Pilih tautan di bawah untuk
-              melanjutkan.
-            </p>
+          <div className="grid gap-1.5">
+            <Heading level={1}>Halaman ini tidak ada</Heading>
+            <Paragraph tone="muted">
+              Alamatnya mungkin salah ketik, atau eventnya sudah selesai dan halamannya ditutup.
+            </Paragraph>
           </div>
-          <Link
-            to="/events"
-            className="inline-flex h-[38px] w-fit items-center justify-center rounded-[var(--radius-control)] bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-accent-ink"
-          >
-            Lihat event hari ini
-          </Link>
-          <nav aria-label="Tautan cepat" className="grid gap-1 border-t border-rule pt-3">
+          <LinkButton to="/events">Cari event lain</LinkButton>
+          <nav aria-label="Tautan cepat" className="flex flex-wrap gap-x-5 gap-y-2 border-t border-border-soft pt-4">
             {QUICK_LINKS.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className="w-fit text-sm font-medium text-muted transition-colors hover:text-ink"
-              >
+              <Link key={link.to} to={link.to} className="text-sm font-semibold text-muted transition-colors hover:text-ink">
                 {link.label}
               </Link>
             ))}
           </nav>
         </div>
-      </Card>
-    </div>
+      </Container>
+    </main>
   )
 }

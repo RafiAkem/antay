@@ -1,13 +1,13 @@
 -- name: ListOpenEvents :many
 SELECT * FROM events
-WHERE event_date = sqlc.arg(event_date) AND status = 'open'
+WHERE event_date = sqlc.arg(event_date) AND status = 'published'
 ORDER BY open_minutes, name;
 
 -- name: GetOpenEvent :one
-SELECT * FROM events WHERE id = sqlc.arg(id) AND status = 'open';
+SELECT * FROM events WHERE id = sqlc.arg(id) AND status = 'published';
 
 -- name: LockEvent :one
-SELECT id FROM events WHERE id = sqlc.arg(id) AND status = 'open' FOR UPDATE;
+SELECT id FROM events WHERE id = sqlc.arg(id) AND status = 'published' FOR UPDATE;
 
 -- name: CountSlotBookings :one
 SELECT count(*)::int AS booked FROM tickets

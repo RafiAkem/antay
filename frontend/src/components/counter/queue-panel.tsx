@@ -6,12 +6,10 @@ import { Stepper } from './stepper'
 
 function Figure({ label, value, unit }: { label: string; value: number; unit: string }) {
   return (
-    <div className="grid gap-0.5 px-3.5 py-3">
-      <span className="text-[13px] text-muted">{label}</span>
-      <strong className="num text-2xl leading-7 font-semibold">
-        {value}
-        <small className="ml-1 text-sm font-normal text-muted">{unit}</small>
-      </strong>
+    <div className="grid content-start gap-0.5 px-3 py-3">
+      <span className="text-xs leading-4 font-semibold text-muted">{label}</span>
+      <strong className="num text-[28px] leading-8 font-bold tracking-[-0.02em]">{value}</strong>
+      <span className="text-xs text-muted">{unit}</span>
     </div>
   )
 }
@@ -32,8 +30,8 @@ export function QueuePanel({
     <Card>
       <CardHead title="Antrean di loket" meta="koreksi manual" />
 
-      <div className="grid grid-cols-3 divide-x divide-border-soft rounded-[var(--radius-card)] border border-border-soft">
-        <Figure label="Perkiraan tunggu" value={queue.waitMinutes} unit="mnt" />
+      <div className="grid grid-cols-3 divide-x divide-border-soft rounded-card border border-border-soft">
+        <Figure label="Perkiraan tunggu" value={queue.waitMinutes} unit="menit" />
         <Figure label="Orang antre" value={queue.waiting} unit="orang" />
         <Figure label="Loket buka" value={event.counterCount} unit="loket" />
       </div>
@@ -41,18 +39,18 @@ export function QueuePanel({
       <div className="mt-3.5">
         {queue.long ? (
           <Notice tone="warn" title="Tunggu lebih dari 15 menit.">
-            Buka {extra} loket lagi supaya tunggu di bawah 15 menit. Saat ini butuh {queue.countersNeeded}{' '}
-            loket untuk {queue.waiting} orang.
+            Buka {extra} loket lagi supaya tunggu di bawah 15 menit. Saat ini butuh {queue.countersNeeded} loket untuk{' '}
+            {queue.waiting} orang.
           </Notice>
         ) : (
           <Notice tone="ok">Antrean terkendali, perkiraan tunggu di bawah 15 menit.</Notice>
         )}
       </div>
 
-      <div className="mt-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-3.5 flex flex-wrap items-center justify-between gap-3 border-t border-border-soft pt-3.5">
         <div className="grid gap-0.5">
-          <span className="text-sm font-medium">Koreksi manual</span>
-          <span className="text-xs text-muted">{event.serviceSeconds} detik per orang</span>
+          <span className="text-sm font-semibold">Orang di antrean</span>
+          <span className="text-xs text-muted">Hitung ulang dari barisan. {event.serviceSeconds} detik per orang.</span>
         </div>
         <Stepper
           value={waitingCount}

@@ -23,7 +23,7 @@ INSERT INTO events (
     $8, $9, $10,
     $11, $12, $13,
     $14
-) RETURNING id, code_prefix, name, place, item, requirement, event_date, open_minutes, close_minutes, slot_minutes, slot_capacity, counter_count, service_seconds, waiting_count, status, created_by, created_at, updated_at
+) RETURNING id, code_prefix, name, place, item, requirement, event_date, open_minutes, close_minutes, slot_minutes, slot_capacity, counter_count, service_seconds, waiting_count, status, created_by, created_at, updated_at, organizer_id, description, poster_url, sale_starts_at, sale_ends_at, fee_bearer, fee_percent_bp, fee_flat, rejection_reason, submitted_at, published_at
 `
 
 type CreateEventParams struct {
@@ -80,12 +80,23 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrganizerID,
+		&i.Description,
+		&i.PosterUrl,
+		&i.SaleStartsAt,
+		&i.SaleEndsAt,
+		&i.FeeBearer,
+		&i.FeePercentBp,
+		&i.FeeFlat,
+		&i.RejectionReason,
+		&i.SubmittedAt,
+		&i.PublishedAt,
 	)
 	return i, err
 }
 
 const getEvent = `-- name: GetEvent :one
-SELECT id, code_prefix, name, place, item, requirement, event_date, open_minutes, close_minutes, slot_minutes, slot_capacity, counter_count, service_seconds, waiting_count, status, created_by, created_at, updated_at FROM events WHERE id = $1
+SELECT id, code_prefix, name, place, item, requirement, event_date, open_minutes, close_minutes, slot_minutes, slot_capacity, counter_count, service_seconds, waiting_count, status, created_by, created_at, updated_at, organizer_id, description, poster_url, sale_starts_at, sale_ends_at, fee_bearer, fee_percent_bp, fee_flat, rejection_reason, submitted_at, published_at FROM events WHERE id = $1
 `
 
 func (q *Queries) GetEvent(ctx context.Context, id uuid.UUID) (Event, error) {
@@ -110,12 +121,23 @@ func (q *Queries) GetEvent(ctx context.Context, id uuid.UUID) (Event, error) {
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrganizerID,
+		&i.Description,
+		&i.PosterUrl,
+		&i.SaleStartsAt,
+		&i.SaleEndsAt,
+		&i.FeeBearer,
+		&i.FeePercentBp,
+		&i.FeeFlat,
+		&i.RejectionReason,
+		&i.SubmittedAt,
+		&i.PublishedAt,
 	)
 	return i, err
 }
 
 const listEventsForStaff = `-- name: ListEventsForStaff :many
-SELECT id, code_prefix, name, place, item, requirement, event_date, open_minutes, close_minutes, slot_minutes, slot_capacity, counter_count, service_seconds, waiting_count, status, created_by, created_at, updated_at FROM events
+SELECT id, code_prefix, name, place, item, requirement, event_date, open_minutes, close_minutes, slot_minutes, slot_capacity, counter_count, service_seconds, waiting_count, status, created_by, created_at, updated_at, organizer_id, description, poster_url, sale_starts_at, sale_ends_at, fee_bearer, fee_percent_bp, fee_flat, rejection_reason, submitted_at, published_at FROM events
 WHERE event_date = $1
 ORDER BY open_minutes, name
 `
@@ -148,6 +170,17 @@ func (q *Queries) ListEventsForStaff(ctx context.Context, eventDate string) ([]E
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.OrganizerID,
+			&i.Description,
+			&i.PosterUrl,
+			&i.SaleStartsAt,
+			&i.SaleEndsAt,
+			&i.FeeBearer,
+			&i.FeePercentBp,
+			&i.FeeFlat,
+			&i.RejectionReason,
+			&i.SubmittedAt,
+			&i.PublishedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -254,7 +287,7 @@ SET waiting_count = COALESCE($1, waiting_count),
     counter_count = COALESCE($2, counter_count),
     updated_at = now()
 WHERE id = $3
-RETURNING id, code_prefix, name, place, item, requirement, event_date, open_minutes, close_minutes, slot_minutes, slot_capacity, counter_count, service_seconds, waiting_count, status, created_by, created_at, updated_at
+RETURNING id, code_prefix, name, place, item, requirement, event_date, open_minutes, close_minutes, slot_minutes, slot_capacity, counter_count, service_seconds, waiting_count, status, created_by, created_at, updated_at, organizer_id, description, poster_url, sale_starts_at, sale_ends_at, fee_bearer, fee_percent_bp, fee_flat, rejection_reason, submitted_at, published_at
 `
 
 type UpdateEventQueueParams struct {
@@ -285,6 +318,17 @@ func (q *Queries) UpdateEventQueue(ctx context.Context, arg UpdateEventQueuePara
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrganizerID,
+		&i.Description,
+		&i.PosterUrl,
+		&i.SaleStartsAt,
+		&i.SaleEndsAt,
+		&i.FeeBearer,
+		&i.FeePercentBp,
+		&i.FeeFlat,
+		&i.RejectionReason,
+		&i.SubmittedAt,
+		&i.PublishedAt,
 	)
 	return i, err
 }

@@ -8,3 +8,6 @@ bin/
 *.log
 .taste-skill/
 .DS_Store
+
+# berkas upload gambar event (dev)
+backend/uploads/

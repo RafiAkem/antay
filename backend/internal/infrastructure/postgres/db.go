@@ -30,6 +30,12 @@ func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	}
 	cfg.MaxConns = 10
 	cfg.MaxConnLifetime = time.Hour
+	// now(), date_trunc, dan cast ke date di SQL ikut zona sesi. Dipaku ke Jakarta
+	// supaya laporan per hari tidak bergeser kalau server database di UTC.
+	if cfg.ConnConfig.RuntimeParams == nil {
+		cfg.ConnConfig.RuntimeParams = map[string]string{}
+	}
+	cfg.ConnConfig.RuntimeParams["timezone"] = "Asia/Jakarta"
 
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {

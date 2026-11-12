@@ -51,7 +51,7 @@ export function Select({ value, options, onChange, label, placeholder = 'Pilih',
   }, [open])
 
   return (
-    <div className={`grid gap-2 text-sm font-medium ${className}`}>
+    <div className={`grid gap-1.5 text-[13px] font-semibold ${className}`}>
       {label ? <span>{label}</span> : null}
       <button
         ref={triggerRef}
@@ -60,7 +60,7 @@ export function Select({ value, options, onChange, label, placeholder = 'Pilih',
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-[38px] w-full items-center justify-between gap-2 rounded-[var(--radius-control)] border border-control bg-surface px-3 text-left text-sm disabled:cursor-not-allowed disabled:bg-raised disabled:text-muted"
+        className="flex h-10 w-full items-center justify-between gap-2 rounded-control border border-control bg-surface px-3 text-left text-sm font-normal disabled:cursor-not-allowed disabled:bg-raised disabled:text-muted"
       >
         <span className={selected ? '' : 'text-faint'}>{selected?.label ?? placeholder}</span>
         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" className="flex-none stroke-muted">
@@ -79,7 +79,7 @@ export function Select({ value, options, onChange, label, placeholder = 'Pilih',
                 width: position.width,
                 visibility: position.visible ? 'visible' : 'hidden',
               }}
-              className="z-50 max-h-[280px] overflow-y-auto rounded-[var(--radius-control)] border border-border-soft bg-surface p-1 shadow-lg"
+              className="z-50 max-h-[280px] overflow-y-auto rounded-control border border-border-soft bg-surface p-1 shadow-lg"
             >
               {options.map((option) => (
                 <button

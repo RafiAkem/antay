@@ -27,15 +27,17 @@ export function CounterBar({
       }))
     : []
 
+  // Di ponsel event makan satu baris penuh, lalu loket dan stepper berbagi
+  // baris kedua. Di layar lebar ketiganya sejajar.
   return (
-    <div className="flex flex-wrap items-end gap-3">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 rounded-card border border-border-soft bg-surface p-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
       <Select
         label="Event"
         value={event?.id ?? ''}
         options={eventOptions}
         onChange={onEventChange}
         placeholder="Belum ada event"
-        className="min-w-[220px] flex-[2_1_260px]"
+        className="col-span-2 sm:col-span-1"
       />
       <Select
         label="Loket saya"
@@ -44,10 +46,9 @@ export function CounterBar({
         onChange={(value) => onCounterChange(Number(value))}
         placeholder="Pilih loket"
         disabled={!event}
-        className="min-w-[140px] flex-[1_1_160px]"
       />
-      <div className="grid gap-2 text-sm font-medium">
-        <span>Loket buka</span>
+      <div className="grid gap-1.5">
+        <span className="text-[13px] font-semibold">Loket buka</span>
         <Stepper
           value={event?.counterCount ?? 0}
           min={1}
@@ -57,6 +58,7 @@ export function CounterBar({
           onChange={onCountersChange}
           decreaseLabel="Kurangi loket"
           increaseLabel="Tambah loket"
+          compact
         />
       </div>
     </div>
