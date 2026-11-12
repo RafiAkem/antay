@@ -106,6 +106,11 @@ func WebPSize(data []byte) (int, int, error) {
 	if !isWebP(data) {
 		return 0, 0, ErrUnsupportedType
 	}
+	// isWebP hanya menjamin 16 byte; potongan payload mulai di offset 20, jadi
+	// berkas 16-19 byte harus ditolak di sini, bukan memicu panic saat slice.
+	if len(data) < 20 {
+		return 0, 0, ErrUnsupportedType
+	}
 	p := data[20:] // payload chunk pertama, setelah fourcc dan panjang chunk
 	switch string(data[12:16]) {
 	case "VP8 ":
