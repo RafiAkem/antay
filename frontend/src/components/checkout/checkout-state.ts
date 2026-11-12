@@ -17,6 +17,9 @@ export type CheckoutState = {
   // Kategori yang mau dipilih padahal keranjang masih berisi. UI menanyakan
   // dulu, baru confirmSwitchCategory yang benar-benar mengosongkan keranjang.
   pendingCategoryId: string | null
+  // Kursi yang diketuk di denah kategori bersamaan dengan pendingCategoryId.
+  // Begitu pergantian kategori dikonfirmasi, kursi ini langsung jadi pilihan.
+  pendingSeatCode: string | null
   quantities: Record<string, number>
   seatCodes: string[]
   holders: string[]
@@ -25,6 +28,7 @@ export type CheckoutState = {
 
 export type CheckoutAction =
   | { type: 'selectCategory'; categoryId: string }
+  | { type: 'pickSeat'; categoryId: string; seatCode: string }
   | { type: 'confirmSwitchCategory'; confirm: boolean }
   | { type: 'setQuantity'; packageId: string; quantity: number }
   | { type: 'setSeats'; seatCodes: string[] }
@@ -40,7 +44,7 @@ export type CheckoutAction =
 export type ProceedCheck = { ok: true; reason: null } | { ok: false; reason: string }
 
 export function createInitialState(eventId: string): CheckoutState {
-  return { eventId, step: 'category', categoryId: null, pendingCategoryId: null, quantities: {}, seatCodes: [], holders: [], promoCode: '' }
+  return { eventId, step: 'category', categoryId: null, pendingCategoryId: null, pendingSeatCode: null, quantities: {}, seatCodes: [], holders: [], promoCode: '' }
 }
 
 export function findCategory(event: CatalogEventDetail, categoryId: string | null): CatalogCategory | null {
@@ -108,13 +112,31 @@ export function buildCtaLabel(step: CheckoutStep, amount: number): string {
 }
 
 function switchCategory(state: CheckoutState, categoryId: string): CheckoutState {
-  return { ...state, categoryId, pendingCategoryId: null, step: 'package', quantities: {}, seatCodes: [], holders: [] }
+  return { ...state, categoryId, pendingCategoryId: null, pendingSeatCode: null, step: 'package', quantities: {}, seatCodes: [], holders: [] }
 }
 
 function moveStep(state: CheckoutState, category: CatalogCategory | null, offset: 1 | -1): CheckoutState {
   const steps = stepsFor(category)
   const step = steps[steps.indexOf(state.step) + offset]
-  return step && steps.includes(state.step) ? { ...state, step, pendingCategoryId: null } : state
+  return step && steps.includes(state.step) ? { ...state, step, pendingCategoryId: null, pendingSeatCode: null } : state
+}
+
+// Pembeli mengetuk kursi di denah kategori sebelum memilih paket. Kategorinya
+// ikut terpilih dan kursi itu langsung tercentang. Jumlah orang belum ada di
+// langkah ini, jadi selama paket kosong satu kursi dulu yang disimpan; sisanya
+// dipilih di langkah Kursi setelah paketnya jelas.
+function pickSeat(state: CheckoutState, event: CatalogEventDetail, current: CatalogCategory | null, categoryId: string, seatCode: string): CheckoutState {
+  const target = findCategory(event, categoryId)
+  if (!target || target.soldOut || !target.isSeated || !seatCode) return state
+  if (target.id !== state.categoryId) {
+    if (totalPax(state, current) > 0) return { ...state, pendingCategoryId: target.id, pendingSeatCode: seatCode }
+    return { ...switchCategory(state, target.id), seatCodes: [seatCode] }
+  }
+  const pax = totalPax(state, current)
+  let seatCodes = state.seatCodes
+  if (pax === 0) seatCodes = [seatCode]
+  else if (!seatCodes.includes(seatCode) && seatCodes.length < pax) seatCodes = [...seatCodes, seatCode]
+  return { ...state, seatCodes, step: 'package', pendingCategoryId: null, pendingSeatCode: null }
 }
 
 export function createCheckoutReducer(event: CatalogEventDetail, buyerName = '') {
@@ -124,12 +146,17 @@ export function createCheckoutReducer(event: CatalogEventDetail, buyerName = '')
       case 'selectCategory': {
         const target = findCategory(event, action.categoryId)
         if (!target || target.soldOut) return state
-        if (target.id === state.categoryId) return { ...state, step: 'package', pendingCategoryId: null }
-        return totalPax(state, category) > 0 ? { ...state, pendingCategoryId: target.id } : switchCategory(state, target.id)
+        if (target.id === state.categoryId) return { ...state, step: 'package', pendingCategoryId: null, pendingSeatCode: null }
+        return totalPax(state, category) > 0 ? { ...state, pendingCategoryId: target.id, pendingSeatCode: null } : switchCategory(state, target.id)
       }
-      case 'confirmSwitchCategory':
+      case 'pickSeat':
+        return pickSeat(state, event, category, action.categoryId, action.seatCode)
+      case 'confirmSwitchCategory': {
         if (!state.pendingCategoryId) return state
-        return action.confirm ? switchCategory(state, state.pendingCategoryId) : { ...state, pendingCategoryId: null }
+        if (!action.confirm) return { ...state, pendingCategoryId: null, pendingSeatCode: null }
+        const switched = switchCategory(state, state.pendingCategoryId)
+        return state.pendingSeatCode ? { ...switched, seatCodes: [state.pendingSeatCode] } : switched
+      }
       case 'setQuantity': {
         const pkg = category?.packages.find((item) => item.id === action.packageId)
         return category && pkg ? applyQuantity(state, category, pkg, action.quantity, buyerName) : state
@@ -157,7 +184,7 @@ export function createCheckoutReducer(event: CatalogEventDetail, buyerName = '')
         const steps = stepsFor(category)
         const target = steps.indexOf(action.step)
         // Mundur selalu boleh, maju cuma sampai langkah pertama yang belum beres.
-        return target >= 0 && target <= steps.indexOf(firstBlockedStep(state, event)) ? { ...state, step: action.step, pendingCategoryId: null } : state
+        return target >= 0 && target <= steps.indexOf(firstBlockedStep(state, event)) ? { ...state, step: action.step, pendingCategoryId: null, pendingSeatCode: null } : state
       }
       case 'next':
         return state.step !== 'summary' && canProceed(state, event).ok ? moveStep(state, category, 1) : state

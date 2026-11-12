@@ -11,12 +11,13 @@ import { useCheckoutFlow } from './use-checkout-flow'
 type CheckoutViewProps = {
   event: CatalogEventDetail
   initialCategoryId: string | null
+  initialSeatCode?: string | null
 }
 
 // Halaman checkout untuk satu event yang sedang dijual. Pemanggil wajib memberi
 // key={event.id} supaya state keranjang tidak terbawa ke event lain.
-export function CheckoutView({ event, initialCategoryId }: CheckoutViewProps) {
-  const flow = useCheckoutFlow(event, initialCategoryId)
+export function CheckoutView({ event, initialCategoryId, initialSeatCode = null }: CheckoutViewProps) {
+  const flow = useCheckoutFlow(event, initialCategoryId, initialSeatCode)
   const { checkout } = flow
   const step = checkout.state.step
 

@@ -10,16 +10,17 @@ type SeatNodeProps = {
   visual: SeatVisual
   dimmed: boolean
   interactive: boolean
+  tone?: string
 }
 
 // Klik dan tombol keyboard tidak dipasang per kursi; SeatMapView menangkapnya
 // sekali lewat data-seat, jadi kursi cukup berupa gambar dengan atribut.
-function SeatNode({ label, x, y, visual, dimmed, interactive }: SeatNodeProps) {
+function SeatNode({ label, x, y, visual, dimmed, interactive, tone }: SeatNodeProps) {
   const transform = `translate(${x} ${y})`
   if (!interactive) {
     return (
       <g transform={transform} aria-hidden="true">
-        <SeatGlyph visual={visual} dimmed={dimmed} />
+        <SeatGlyph visual={visual} dimmed={dimmed} tone={tone} />
       </g>
     )
   }
@@ -35,7 +36,7 @@ function SeatNode({ label, x, y, visual, dimmed, interactive }: SeatNodeProps) {
     >
       {/* Area sentuh sedikit lebih besar dari gambarnya; ikut membesar saat denah diperbesar. */}
       <circle r={SEAT_RADIUS + 4} className="fill-transparent" />
-      <SeatGlyph visual={visual} dimmed={dimmed} />
+      <SeatGlyph visual={visual} dimmed={dimmed} tone={tone} />
       <circle
         r={SEAT_RADIUS + 3}
         fill="none"
@@ -54,11 +55,12 @@ type GroupProps = {
   selectable?: (seat: SeatMapSeat) => boolean
   highlightCategoryId?: string
   interactive: boolean
+  tones?: Record<string, string>
 }
 
 // Satu baris kursi per grup. Memilih satu kursi hanya merender ulang barisnya,
 // bukan 3.000 kursi; di mode dev React selisihnya ratusan milidetik.
-const SeatGroup = memo(function SeatGroup({ seats, selectedKey, selectable, highlightCategoryId, interactive }: GroupProps) {
+const SeatGroup = memo(function SeatGroup({ seats, selectedKey, selectable, highlightCategoryId, interactive, tones }: GroupProps) {
   const selected = new Set(selectedKey ? selectedKey.split('\n') : [])
   return (
     <g>
@@ -69,7 +71,7 @@ const SeatGroup = memo(function SeatGroup({ seats, selectedKey, selectable, high
         // Kursi kategori lain atau yang tidak bisa dipilih dibuat pudar, bukan
         // disembunyikan, supaya pembeli tetap melihat posisi dirinya di ruangan.
         const dimmed = visual !== 'selected' && (outside || (interactive && !canPick && visual === 'available'))
-        return <SeatNode key={seat.id} label={seat.label} x={seat.x} y={seat.y} visual={visual} dimmed={dimmed} interactive={canPick} />
+        return <SeatNode key={seat.id} label={seat.label} x={seat.x} y={seat.y} visual={visual} dimmed={dimmed} interactive={canPick} tone={tones?.[seat.categoryId]} />
       })}
     </g>
   )
@@ -81,9 +83,10 @@ type SeatLayerProps = {
   selectable?: (seat: SeatMapSeat) => boolean
   highlightCategoryId?: string
   interactive: boolean
+  tones?: Record<string, string>
 }
 
-export const SeatLayer = memo(function SeatLayer({ seats, selected, selectable, highlightCategoryId, interactive }: SeatLayerProps) {
+export const SeatLayer = memo(function SeatLayer({ seats, selected, selectable, highlightCategoryId, interactive, tones }: SeatLayerProps) {
   const groups = useMemo(() => {
     const byRow = new Map<string, SeatMapSeat[]>()
     for (const seat of seats) {
@@ -105,6 +108,7 @@ export const SeatLayer = memo(function SeatLayer({ seats, selected, selectable, 
           selectable={selectable}
           highlightCategoryId={highlightCategoryId}
           interactive={interactive}
+          tones={tones}
         />
       ))}
     </g>

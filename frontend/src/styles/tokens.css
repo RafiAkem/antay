@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* Arah v2 (docs/ui-direction.md): marketplace event. Latar hampir putih
-   netral, biru Antay tetap satu-satunya aksen. promo dan scarce bukan aksen kedua:
+   netral, biru SummaPass tetap satu-satunya aksen. promo dan scarce bukan aksen kedua:
    promo cuma untuk diskon, scarce cuma untuk sisa sedikit. */
 @theme {
   --color-ground: #fafbfb;
@@ -41,6 +41,15 @@
   --color-board-ink: #f3f5f8;
   --color-board-dim: #a9b1bd;
   --color-board-line: #26323b;
+  /* Warna area kategori di denah kursi, urut dari kategori termurah. Biru tidak
+     dipakai karena sudah jadi tanda kursi "Pilihanmu". Nama kategori tetap
+     tertulis di label blok dan legenda, jadi warna bukan satu-satunya pembeda. */
+  --color-zone-1: #0f766e;
+  --color-zone-2: #c2410c;
+  --color-zone-3: #7c3aed;
+  --color-zone-4: #be185d;
+  --color-zone-5: #4d7c0f;
+  --color-zone-6: #a16207;
 
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;

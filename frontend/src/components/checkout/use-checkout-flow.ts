@@ -7,9 +7,9 @@ import type { CatalogEventDetail } from '@/types/catalog'
 import { loginPath } from './checkout-labels'
 import { useCheckout } from './use-checkout'
 
-export function useCheckoutFlow(event: CatalogEventDetail, initialCategoryId: string | null) {
+export function useCheckoutFlow(event: CatalogEventDetail, initialCategoryId: string | null, initialSeatCode: string | null = null) {
   const { customer, loading: customerLoading } = useCustomer()
-  const checkout = useCheckout(event, customer?.name ?? '', customer !== null, initialCategoryId)
+  const checkout = useCheckout(event, customer?.name ?? '', customer !== null, initialCategoryId, initialSeatCode)
   const navigate = useNavigate()
   const location = useLocation()
   const [paymentOpen, setPaymentOpen] = useState(false)

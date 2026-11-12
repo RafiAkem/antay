@@ -83,9 +83,12 @@ export function sortCategories(categories: CatalogCategory[]): CatalogCategory[]
   })
 }
 
-export function checkoutPath(eventId: string, categoryId?: string): string {
+export function checkoutPath(eventId: string, categoryId?: string, seatCode?: string): string {
   const base = `/events/${encodeURIComponent(eventId)}/checkout`
-  return categoryId ? `${base}?category=${encodeURIComponent(categoryId)}` : base
+  if (!categoryId) return base
+  const query = new URLSearchParams({ category: categoryId })
+  if (seatCode) query.set('seat', seatCode)
+  return `${base}?${query.toString()}`
 }
 
 // Di bawah angka ini sisa kursi atau kuota diberi badge scarce.

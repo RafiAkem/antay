@@ -76,7 +76,7 @@ export function saveCheckout(state: CheckoutState): void {
   try {
     const key = checkoutStorageKey(state.eventId)
     if (state.categoryId === null && state.promoCode === '') sessionStorage.removeItem(key)
-    else sessionStorage.setItem(key, JSON.stringify({ ...state, pendingCategoryId: null }))
+    else sessionStorage.setItem(key, JSON.stringify({ ...state, pendingCategoryId: null, pendingSeatCode: null }))
   } catch {
     // Gagal menyimpan bukan alasan untuk mengganggu pembeli, cukup diabaikan.
   }

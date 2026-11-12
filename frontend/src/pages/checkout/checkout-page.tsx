@@ -13,5 +13,5 @@ export function CheckoutPage() {
   if (state.status === 'missing') return <CheckoutMissing />
   if (state.status === 'error') return <CheckoutError message={state.message} onRetry={retry} />
   if (!saleStatusOf(state.event).buyable) return <CheckoutClosed event={state.event} />
-  return <CheckoutView key={state.event.id} event={state.event} initialCategoryId={params.get('category')} />
+  return <CheckoutView key={state.event.id} event={state.event} initialCategoryId={params.get('category')} initialSeatCode={params.get('seat')} />
 }

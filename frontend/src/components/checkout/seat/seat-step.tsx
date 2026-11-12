@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
 import type { CatalogCategory, SeatMap, SeatMapSeat } from '@/types/catalog'
 import { SeatChips } from './seat-chips'
-import { useSeatMap } from './use-seat-map'
+import { useSeatMap } from '@/components/seat-map/use-seat-map'
 
 type SeatStepProps = {
   eventId: string

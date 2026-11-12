@@ -26,7 +26,13 @@ export function CheckoutContent({ event, flow }: CheckoutContentProps) {
         {STEP_HEADINGS[step]}
       </Heading>
       {step === 'category' || !category ? (
-        <CategoryStep event={event} selectedId={state.categoryId} onSelect={checkout.selectCategory} />
+        <CategoryStep event={event} selectedId={state.categoryId} onSelect={checkout.selectCategory} onPickSeat={checkout.pickSeat} />
+      ) : null}
+      {step === 'package' && category?.isSeated && state.seatCodes.length > 0 ? (
+        <p className="rounded-control bg-tint-50 px-3 py-2 text-sm text-accent-ink">
+          Kursi <span className="font-mono font-semibold">{state.seatCodes.join(', ')}</span> sudah kamu tandai. Pilih paketnya dulu, kursi
+          lainnya dipilih di langkah berikutnya.
+        </p>
       ) : null}
       {step === 'package' && category ? (
         <PackageStep

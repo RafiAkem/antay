@@ -5,6 +5,7 @@ import { Heading, Paragraph } from '@/components/ui/text'
 import type { CatalogEventDetail } from '@/types/catalog'
 import { SECTION_SCROLL_MARGIN } from '../event-detail-labels'
 import { checkoutPath, saleStatusOf, sortCategories } from '../event-format'
+import { EventZoneMap } from './event-zone-map'
 import { TicketCategoryRow } from './ticket-category-row'
 
 // Bagian Tiket hanya memperlihatkan pilihan. Memilih paket, kursi, dan jumlah
@@ -14,6 +15,7 @@ export function EventTicketsSection({ event }: { event: CatalogEventDetail }) {
   const maxLeft = useMemo(() => Math.max(0, ...categories.map((category) => category.left)), [categories])
   const [openId, setOpenId] = useState<string | null>(null)
   const sale = saleStatusOf(event)
+  const hasSeats = categories.some((category) => category.isSeated)
 
   return (
     <Section id="tiket" labelledBy="tiket-title" pad="sm" className={SECTION_SCROLL_MARGIN}>
@@ -22,9 +24,13 @@ export function EventTicketsSection({ event }: { event: CatalogEventDetail }) {
           Tiket
         </Heading>
         <Paragraph tone="muted" size="sm">
-          Buka kategori untuk melihat paketnya. Jumlah tiket dan kursi dipilih di langkah berikutnya.
+          {hasSeats
+            ? 'Lihat letak tiap kategori di denah. Ketuk kursinya untuk langsung memesan, atau buka kategori untuk melihat paketnya.'
+            : 'Buka kategori untuk melihat paketnya. Jumlah tiket dipilih di langkah berikutnya.'}
         </Paragraph>
       </div>
+
+      {hasSeats ? <EventZoneMap eventId={event.id} categories={categories} buyable={sale.buyable} /> : null}
 
       {categories.length === 0 ? (
         <Empty

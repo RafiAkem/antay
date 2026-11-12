@@ -37,15 +37,28 @@ function quoteMatches(quote: Quote, items: QuoteItemInput[]): boolean {
   return items.every((item) => quote.items.some((line) => line.packageId === item.packageId && line.quantity === item.quantity))
 }
 
-// initialCategoryId datang dari ?category= di URL. Cuma dipakai kalau tidak ada
+// initialCategoryId datang dari ?category= di URL, initialSeatCode dari ?seat=
+// (kursi yang diketuk di denah halaman event). Cuma dipakai kalau tidak ada
 // keranjang tersimpan, supaya tautan dari halaman event tidak menghapus pilihan lama.
-export function useCheckout(event: CatalogEventDetail, buyerName = '', isLoggedIn = false, initialCategoryId: string | null = null) {
+export function useCheckout(
+  event: CatalogEventDetail,
+  buyerName = '',
+  isLoggedIn = false,
+  initialCategoryId: string | null = null,
+  initialSeatCode: string | null = null,
+) {
   const reducer = useMemo(() => createCheckoutReducer(event, buyerName), [event, buyerName])
   const [state, dispatch] = useReducer(reducer, event, (initial) => {
     const restored = loadCheckout(initial, buyerName)
     if (restored?.categoryId) return restored
     const base = restored ?? createInitialState(initial.id)
-    return initialCategoryId ? reducer(base, { type: 'selectCategory', categoryId: initialCategoryId }) : base
+    if (!initialCategoryId) return base
+    return reducer(
+      base,
+      initialSeatCode
+        ? { type: 'pickSeat', categoryId: initialCategoryId, seatCode: initialSeatCode }
+        : { type: 'selectCategory', categoryId: initialCategoryId },
+    )
   })
 
   // Nama pembeli sering baru datang setelah sesi selesai dimuat.
@@ -109,6 +122,7 @@ export function useCheckout(event: CatalogEventDetail, buyerName = '', isLoggedI
   const actions = useMemo(
     () => ({
       selectCategory: (categoryId: string) => dispatch({ type: 'selectCategory', categoryId }),
+      pickSeat: (categoryId: string, seatCode: string) => dispatch({ type: 'pickSeat', categoryId, seatCode }),
       confirmSwitchCategory: () => dispatch({ type: 'confirmSwitchCategory', confirm: true }),
       cancelSwitchCategory: () => dispatch({ type: 'confirmSwitchCategory', confirm: false }),
       setQuantity: (packageId: string, quantity: number) => dispatch({ type: 'setQuantity', packageId, quantity }),

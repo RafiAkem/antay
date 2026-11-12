@@ -18,6 +18,8 @@ export type SeatMapViewProps = {
   onToggle?: (label: string) => void
   // Kursi di luar kategori ini dipudarkan, dan tampilan awal menyorot kategori ini.
   highlightCategoryId?: string
+  // Warna kursi tersedia per kategori, untuk denah yang memetakan semua kategori.
+  tones?: Record<string, string>
   className?: string
 }
 
@@ -28,7 +30,7 @@ function seatElement(target: EventTarget | null): Element | null {
 // Denah kursi baca-saja yang dipakai bersama: checkout pembeli memakainya untuk
 // memilih, editor denah penyelenggara untuk pratinjau. Tidak menyimpan state per
 // kursi; geser dan zoom cuma mengubah viewBox, jadi 3.000 kursi tetap ringan.
-export function SeatMapView({ layout, seats, blocks = [], selectable, selected, onToggle, highlightCategoryId, className }: SeatMapViewProps) {
+export function SeatMapView({ layout, seats, blocks = [], selectable, selected, onToggle, highlightCategoryId, tones, className }: SeatMapViewProps) {
   const selectedSet = useMemo(() => new Set(selected), [selected])
   const labels = useMemo(() => blockLabels(blocks, seats), [blocks, seats])
   const initialView = useMemo(
@@ -116,6 +118,7 @@ export function SeatMapView({ layout, seats, blocks = [], selectable, selected, 
           selectable={selectable}
           highlightCategoryId={highlightCategoryId}
           interactive={onToggle !== undefined}
+          tones={tones}
         />
       </svg>
       <SeatMapControls

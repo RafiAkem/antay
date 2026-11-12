@@ -100,5 +100,26 @@ export function runCheckoutChecks(): string[] {
   expect('promo belum mulai', promoRejectionText('not_started'), 'Kode promo belum berlaku.')
   expect('promo kode baru', promoRejectionText('region_locked'), 'region_locked')
 
+  // Kursi diketuk di denah kategori: kategori ikut terpilih, kursi tercentang,
+  // lalu tetap ada setelah paket dipilih dan bisa ditambah di langkah kursi.
+  const tapped = run(event, [{ type: 'pickSeat', categoryId: 'vip', seatCode: 'A1' }])
+  expect('ketuk kursi pilih kategori', [tapped.categoryId, tapped.step, tapped.seatCodes], ['vip', 'package', ['A1']])
+  const tappedPaid = run(event, [
+    { type: 'pickSeat', categoryId: 'vip', seatCode: 'A1' },
+    { type: 'setQuantity', packageId: 'vip-couple', quantity: 1 },
+    { type: 'next' },
+    { type: 'toggleSeat', seatCode: 'A2' },
+  ])
+  expect('kursi ketukan bertahan', [tappedPaid.step, tappedPaid.seatCodes], ['seats', ['A1', 'A2']])
+  expect('kategori tanpa kursi diabaikan', run(event, [{ type: 'pickSeat', categoryId: 'festival', seatCode: 'A1' }]).categoryId, null)
+  const switching = run(event, [
+    { type: 'selectCategory', categoryId: 'festival' },
+    { type: 'setQuantity', packageId: 'fes-single', quantity: 2 },
+    { type: 'pickSeat', categoryId: 'vip', seatCode: 'B4' },
+  ])
+  expect('ketuk kursi kategori lain ditahan', [switching.categoryId, switching.pendingCategoryId, switching.pendingSeatCode], ['festival', 'vip', 'B4'])
+  const seatSwitched = createCheckoutReducer(event, 'Budi')(switching, { type: 'confirmSwitchCategory', confirm: true })
+  expect('ganti kategori bawa kursi', [seatSwitched.categoryId, seatSwitched.seatCodes, seatSwitched.pendingSeatCode], ['vip', ['B4'], null])
+
   return failures
 }
