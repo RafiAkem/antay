@@ -118,5 +118,65 @@
     "height": 1000,
     "credit": "Foto oleh Howard Weiss di Unsplash",
     "sourceUrl": "https://unsplash.com/photos/a-child-touches-a-vibrant-red-lion-dance-costume-NeTjoUMjv2Y"
+  },
+  {
+    "file": "acoustic-poster.jpg",
+    "event": "acoustic",
+    "kind": "poster",
+    "alt": "Gitaris memainkan gitar akustik di depan mikrofon, diterangi lampu panggung jingga",
+    "width": 1200,
+    "height": 1200,
+    "credit": "Foto oleh Jacob Padilla di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/man-playing-guitar-on-stage-hv50fkyit50"
+  },
+  {
+    "file": "acoustic-gallery-1.jpg",
+    "event": "acoustic",
+    "kind": "gallery",
+    "alt": "Gitaris di bawah sorot lampu tunggal di panggung gelap, kepala penonton terlihat di depan",
+    "width": 1600,
+    "height": 1000,
+    "credit": "Foto oleh Linda Xu di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/person-playing-guitar-on-stage-arvoZ9puXv4"
+  },
+  {
+    "file": "acoustic-gallery-2.jpg",
+    "event": "acoustic",
+    "kind": "gallery",
+    "alt": "Vokalis dan pemain bas tampil di bawah sorot lampu putih di depan penonton yang mengangkat tangan",
+    "width": 1600,
+    "height": 1000,
+    "credit": "Foto oleh Max Ovcharenko di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/musicians-performing-on-dark-concert-stage-cjaVtHwS-Y8"
+  },
+  {
+    "file": "culinary-poster.jpg",
+    "event": "culinary",
+    "kind": "poster",
+    "alt": "Jalan pasar malam penuh pengunjung di bawah deretan lampion jingga",
+    "width": 1200,
+    "height": 1200,
+    "credit": "Foto oleh James Lo di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/crowded-street-market-at-night-with-lanterns-prZR_BQiZzU"
+  },
+  {
+    "file": "culinary-gallery-1.jpg",
+    "event": "culinary",
+    "kind": "gallery",
+    "alt": "Deretan kios jajanan bercahaya terang di sepanjang jalan pasar malam",
+    "width": 1600,
+    "height": 1000,
+    "credit": "Foto oleh MChe Lee di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/night-market-street-with-food-stalls-mLkHLNuCYOY"
+  },
+  {
+    "file": "culinary-gallery-2.jpg",
+    "event": "culinary",
+    "kind": "gallery",
+    "alt": "Tenda kios makanan di bawah untaian lampion merah dan lampu kecil pada malam hari",
+    "width": 1600,
+    "height": 1000,
+    "credit": "Foto oleh Jacky Watt di Unsplash",
+    "sourceUrl": "https://unsplash.com/photos/night-market-with-red-lanterns-and-stalls-BJ7rkGvAl6g"
   }
 ]

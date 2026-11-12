@@ -27,10 +27,14 @@ type categorySeed struct {
 }
 
 type eventSeed struct {
-	// key dipakai manifest media: newyear, runfest, persib, mascot.
-	key                                                 string
+	// key unik per event. Foto diambil dari manifest dengan event = media,
+	// atau = key kalau media kosong.
+	key string
+	// media dipakai edisi berikutnya dari seri yang sama (misal laga kandang
+	// pekan depan) supaya memakai foto seri itu tanpa menggandakan berkas.
+	media                                               string
 	prefix, name, place, item, requirement, description string
-	// date kosong artinya hari ini di Jakarta, supaya demo selalu punya slot terbuka.
+	// date kosong artinya hari demo loket (lihat demoDay di catalog.go).
 	date                                               string
 	open, close, slotMinutes, capacity, counters, wait int32
 	serviceSeconds                                     int32
@@ -98,6 +102,70 @@ var eventSeeds = []eventSeed{
 			{name: "VIP B", description: "Kursi baris tengah.", seated: true, packages: trio(550000, 1000000, 1450000)},
 			{name: "VIP C", description: "Kursi baris belakang.", seated: true, packages: trio(400000, 750000, 1050000)},
 			{name: "Festival", description: "Area berdiri di depan panggung.", quota: 600, packages: trio(250000, 450000, 650000)},
+		},
+	},
+
+	// Event mendatang bertanggal tetap. Tiga event di atas selalu bertanggal
+	// hari ini untuk demo loket, jadi hilang dari katalog begitu jualannya
+	// tutup malam itu. Yang di bawah ini menjaga katalog tetap terisi.
+	// Prefiksnya sengaja beda dari event hari ini supaya seed yang jalan
+	// tepat di tanggal itu tidak menimpa event demo loket.
+	{
+		key: "acoustic", prefix: "KA", name: "Konser Akustik Sabtu Malam", place: "Sawarga Courtyard",
+		item: "Gelang masuk", requirement: "E-ticket + KTP",
+		description: "Tiga band lokal Bandung main akustik di Sawarga Courtyard. Bawa tikar boleh, area meja depan dapat kursi dan minuman.",
+		date:        "2026-11-21", open: 1020, close: 1260, slotMinutes: 30, capacity: 60, counters: 2,
+		serviceSeconds: 60, feeBP: 200,
+		categories: []categorySeed{
+			{name: "Lesehan", description: "Area bebas di depan panggung, duduk di tikar.", quota: 400, packages: trio(85000, 160000, 230000)},
+			{name: "Meja Depan", description: "Satu meja untuk dua orang, dekat panggung, termasuk minuman.", quota: 40, packages: []packageSeed{
+				{name: "Couple", pax: 2, price: 350000},
+			}},
+		},
+	},
+	{
+		key: "persib-next", media: "persib", prefix: "PS", name: "Penukaran Gelang Laga Kandang Pekan 15", place: "Sawarga Courtyard",
+		item: "Gelang laga", requirement: "E-ticket + KTP sesuai nama",
+		description: "Penukaran gelang untuk laga kandang pekan 15. Pilih jam datang saat beli supaya antrean di Sawarga Courtyard tidak menumpuk.",
+		date:        "2026-11-28", open: 480, close: 1260, slotMinutes: 30, capacity: 60, counters: 3,
+		serviceSeconds: 72,
+		categories: []categorySeed{
+			{name: "Tribun Timur", description: "Tribun berdiri sisi timur.", quota: 300, packages: trio(75000, 140000, 200000)},
+			{name: "VIP Barat", description: "Tribun VIP sisi barat, dekat bangku pemain.", quota: 80, packages: trio(150000, 280000, 400000)},
+		},
+	},
+	{
+		key: "funrun", media: "runfest", prefix: "FR", name: "Summaba Fun Run 2026", place: "Atrium utama",
+		item: "Race pack (BIB + jersey)", requirement: "Bukti registrasi + KTP",
+		description: "Ambil race pack Summaba Fun Run sehari sebelum lomba. Rute 5K dan 10K mengelilingi kawasan Summarecon Bandung.",
+		date:        "2026-12-05", open: 600, close: 1200, slotMinutes: 30, capacity: 50, counters: 3,
+		serviceSeconds: 90,
+		categories: []categorySeed{
+			{name: "5K", description: "Kategori 5 kilometer, cocok untuk pelari pemula.", quota: 600, packages: []packageSeed{{name: "Single", pax: 1, price: 185000}}},
+			{name: "10K", description: "Kategori 10 kilometer.", quota: 400, packages: []packageSeed{{name: "Single", pax: 1, price: 235000}}},
+		},
+	},
+	{
+		key: "culinary", prefix: "PM", name: "Pasar Malam Kuliner Asia", place: "Area parkir timur",
+		item: "Gelang masuk + voucher makan", requirement: "E-ticket",
+		description: "Lebih dari 60 tenant jajanan Asia di bawah lampion. Tiket masuk sudah termasuk voucher makan Rp25.000 per orang.",
+		date:        "2026-12-12", open: 960, close: 1320, slotMinutes: 30, capacity: 120, counters: 4,
+		serviceSeconds: 45,
+		categories: []categorySeed{
+			{name: "Tiket Masuk", description: "Masuk area pasar malam plus voucher makan Rp25.000.", quota: 1500, packages: trio(35000, 65000, 90000)},
+		},
+	},
+	{
+		key: "mascot-xmas", media: "mascot", prefix: "MN", name: "Meet & Greet Maskot Libur Natal", place: "Atrium timur",
+		item: "Gelang meet & greet", requirement: "E-ticket + KTP orang tua",
+		description: "Sesi foto bareng maskot di dekorasi Natal atrium timur. Tiap sesi 20 menit, jadi pilih jam datang yang pas buat si kecil.",
+		date:        "2026-12-24", open: 600, close: 1200, slotMinutes: 20, capacity: 25, counters: 1,
+		serviceSeconds: 150,
+		categories: []categorySeed{
+			{name: "Sesi Foto", description: "Satu kali foto bersama maskot.", quota: 150, packages: []packageSeed{
+				{name: "Single", pax: 1, price: 60000},
+				{name: "Couple (Anak + Ortu)", pax: 2, price: 100000},
+			}},
 		},
 	},
 }
