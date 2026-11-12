@@ -20,10 +20,10 @@ type blockSeed struct {
 }
 
 var newYearBlocks = []blockSeed{
-	{category: "VIP A", name: "VIP A Tengah", spec: seating.BlockSpec{Code: "A", X: 500, Y: 140, RowCount: 4, SeatsPerRow: 16, Curve: 30, AisleAfter: []int{8}}},
-	{category: "VIP B", name: "VIP B Kiri", spec: seating.BlockSpec{Code: "BL", X: 250, Y: 320, Rotation: 20, RowCount: 5, SeatsPerRow: 10}},
-	{category: "VIP B", name: "VIP B Kanan", spec: seating.BlockSpec{Code: "BR", X: 750, Y: 320, Rotation: -20, RowCount: 5, SeatsPerRow: 10}},
-	{category: "VIP C", name: "VIP C Belakang", spec: seating.BlockSpec{Code: "C", X: 500, Y: 470, RowCount: 6, SeatsPerRow: 24, Curve: 40, AisleAfter: []int{6, 12, 18}}},
+	{category: "VIP A", name: "VIP A Tengah", spec: seating.BlockSpec{Code: "A", X: 500, Y: 130, RowCount: 4, SeatsPerRow: 16, Curve: 30, AisleAfter: []int{8}}},
+	{category: "VIP B", name: "VIP B Kiri", spec: seating.BlockSpec{Code: "BL", X: 180, Y: 225, Rotation: 26, RowCount: 5, SeatsPerRow: 10}},
+	{category: "VIP B", name: "VIP B Kanan", spec: seating.BlockSpec{Code: "BR", X: 820, Y: 225, Rotation: -26, RowCount: 5, SeatsPerRow: 10}},
+	{category: "VIP C", name: "VIP C Belakang", spec: seating.BlockSpec{Code: "C", X: 500, Y: 490, RowCount: 6, SeatsPerRow: 24, Curve: 40, AisleAfter: []int{6, 12, 18}}},
 }
 
 // seedSeats membuat denah demo untuk event Tahun Baru. Kalau event itu sudah
