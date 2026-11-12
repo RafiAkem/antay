@@ -1,4 +1,5 @@
 import { Link, Navigate } from 'react-router-dom'
+import { DemoLogin } from '@/components/account/demo-login'
 import { BrandMark } from '@/components/navigation/icons'
 import { Card } from '@/components/ui/card'
 import { Container } from '@/components/ui/container'
@@ -16,9 +17,9 @@ export function LoginPage() {
       <Container size="narrow">
         {/* Form masuk cukup selebar satu kolom isian; lebih lebar malah susah dipindai. */}
         <div className="mx-auto grid w-full max-w-[420px] gap-5">
-          <Link to="/" className="flex w-fit items-center gap-2.5" aria-label="Antay, ke beranda">
+          <Link to="/" className="flex w-fit items-center gap-2.5" aria-label="SummaPass, ke beranda">
             <BrandMark />
-            <b className="text-lg font-bold tracking-[-0.01em]">Antay</b>
+            <b className="text-lg font-bold tracking-[-0.01em]">SummaPass</b>
           </Link>
 
           <Card>
@@ -33,13 +34,12 @@ export function LoginPage() {
             <StaffLoginForm login={login} />
           </Card>
 
+          <DemoLogin customerDestination="/events" />
+
           <div className="grid gap-2 text-center">
             <Link to="/account/login" className="text-sm font-semibold text-accent-ink hover:underline">
               Beli tiket? Masuk sebagai pembeli
             </Link>
-            <Paragraph tone="muted" size="sm">
-              Akun demo: admin@antay.id / admin123 · petugas@antay.id / petugas123 · organizer@antay.id / organizer123
-            </Paragraph>
           </div>
         </div>
       </Container>

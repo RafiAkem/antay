@@ -1,6 +1,7 @@
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthCard } from '@/components/account/auth-card'
 import { AuthFooterLink } from '@/components/account/auth-footer-link'
+import { DemoLogin } from '@/components/account/demo-login'
 import { nextAfterAuth, withNext } from '@/components/account/auth-rules'
 import { LoginForm } from '@/components/account/login-form'
 import { useCustomer } from '@/lib/customer-session'
@@ -33,6 +34,7 @@ export function CustomerLoginPage() {
         </>
       }
     >
+      <DemoLogin customerDestination={destination} className="mb-6" />
       <LoginForm onSuccess={() => navigate(destination, { replace: true })} />
     </AuthCard>
   )
